@@ -1,0 +1,94 @@
+
+@font-face {
+    font-family: PressStart2P;
+    src: url('fonts/PressStart2P.ttf');
+}
+
+@font-face {
+    font-family: Nokia;
+    src: url('fonts/nokiafc22.ttf');
+}
+
+@font-face {
+    font-family: pixelmix;
+    src: url('fonts/pixelmix.ttf');
+}
+
+body {
+	margin: 0px;
+}
+
+.frame {
+	position: absolute;
+	border-left: 2px solid #EEE;
+	border-right: 2px solid #999;
+	border-top: 2px solid #EEE;
+	border-bottom: 2px solid #999;
+	background: #CCC;
+	font-family: 'Nokia';
+	font-size: 8px;
+	font-smooth: never;
+	-webkit-font-smoothing: none;
+}
+
+.header {
+	padding: 5px 10px;
+	font-size: 16px;
+	/*font-weight: bold;*/
+	color: black;
+	cursor: default;
+	text-align: center;
+}
+
+.hline {
+	border-top: 2px solid #999;
+	border-bottom: 2px solid #EEE;
+	margin: 0px 5px;
+}
+
+.button {
+	border-radius: 2px;
+	padding: 3px 10px;
+	border-left: 2px solid #EEE;
+	border-right: 2px solid #999;
+	border-top: 2px solid #EEE;
+	border-bottom: 2px solid #999;
+	display: inline-block;
+	background: #CCC;
+	/*font-weight: bold;*/
+	color: black;
+	cursor: default;
+}
+
+.props {
+	font-size: 8px;
+}
+
+.button:active{
+	border-left: 2px solid #999;
+	border-right: 2px solid #EEE;
+	border-top: 2px solid #999;
+	border-bottom: 2px solid #EEE;
+	background: #888;
+	color: #EEE;
+}
+
+.contour {
+	margin: 5px;
+	border: 1px solid black;
+	border-radius: 2px;
+	display: inline-block;
+}
+
+.center {
+	display:-webkit-box;
+    -webkit-box-pack:center;
+    -webkit-box-align:center;
+}
+
+.content {
+	margin: 5px 5px;
+}
+
+.property_name {
+}
