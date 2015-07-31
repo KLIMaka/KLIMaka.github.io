@@ -4,6 +4,7 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
         var canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;
+        canvas.id = 'gl';
         var gl = canvas.getContext('webgl', opts);
 
         document.body.appendChild(gl.canvas);
