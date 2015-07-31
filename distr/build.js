@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 define(["require", "exports", './modules/gl', './modules/shaders', './libs/getter', './libs/dataviewstream', './libs/mathutils', './modules/controller3d', './modules/engines/build/bloodloader', './modules/engines/build/builder', './modules/engines/build/utils', './modules/engines/build/art', './modules/pixelprovider', './modules/textures', './libs/config', './modules/engines/build/rff', './modules/ui/ui', './libs/imgutils', './libs/browser'], function(require, exports, GL, shaders, getter, data, MU, controller, bloodloader, builder, BU, ART, pixel, TEX, CFG, RFF, UI, IU, browser) {
     var rffFile = 'resources/engines/blood/BLOOD.RFF';
     var cfgFile = 'build.cfg';
