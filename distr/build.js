@@ -1,5 +1,5 @@
-define(["require", "exports", './modules/gl', './modules/shaders', './libs/getter', './libs/dataviewstream', './libs/mathutils', './modules/controller3d', './modules/engines/build/bloodloader', './modules/engines/build/builder', './modules/engines/build/utils', './modules/engines/build/art', './modules/pixelprovider', './modules/textures', './libs/config', './modules/engines/build/rff', './modules/ui/ui', './libs/imgutils'], function(require, exports, GL, shaders, getter, data, MU, controller, bloodloader, builder, BU, ART, pixel, TEX, CFG, RFF, UI, IU) {
-    var rffFile = 'resources/engines/blood/blood.rff';
+define(["require", "exports", './modules/gl', './modules/shaders', './libs/getter', './libs/dataviewstream', './libs/mathutils', './modules/controller3d', './modules/engines/build/bloodloader', './modules/engines/build/builder', './modules/engines/build/utils', './modules/engines/build/art', './modules/pixelprovider', './modules/textures', './libs/config', './modules/engines/build/rff', './modules/ui/ui', './libs/imgutils', './libs/browser'], function(require, exports, GL, shaders, getter, data, MU, controller, bloodloader, builder, BU, ART, pixel, TEX, CFG, RFF, UI, IU, browser) {
+    var rffFile = 'resources/engines/blood/BLOOD.RFF';
     var cfgFile = 'build.cfg';
     var selectPass = false;
 
@@ -199,7 +199,7 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
             arts.push(ART.create(new data.DataViewStream(getter.get(artNames[a]), true)));
         var artFiles = ART.createArts(arts);
 
-        var map = rff.get(cfg.map).buffer;
+        var map = rff.get(browser.getQueryVariable('map')).buffer;
         render(cfg, map, artFiles, pal);
     });
 });

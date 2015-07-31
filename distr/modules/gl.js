@@ -13,10 +13,25 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
     }
     exports.createContext = createContext;
 
+    function resize(gl) {
+        var canvas = gl.canvas;
+
+        var displayWidth = canvas.clientWidth;
+        var displayHeight = canvas.clientHeight;
+
+        if (canvas.width != displayWidth || canvas.height != displayHeight) {
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+    }
+
     function animate(gl, callback) {
         var time = new Date().getTime();
 
         function update() {
+            resize(gl);
             var now = new Date().getTime();
             callback(gl, (now - time) / 1000);
             requestAnimationFrame(update);
