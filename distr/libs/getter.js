@@ -5,12 +5,13 @@ define(["require", "exports"], function(require, exports) {
         function Loader() {
             this.toLoad = 0;
         }
-        Loader.prototype.load = function (fname) {
+        Loader.prototype.load = function (fname, progress) {
+            if (typeof progress === "undefined") { progress = null; }
             var self = this;
             exports.preload(fname, function (b) {
                 cache[fname] = b;
                 self.ready(fname);
-            });
+            }, progress);
             this.toLoad++;
             return this;
         };
@@ -50,7 +51,8 @@ define(["require", "exports"], function(require, exports) {
     }
     exports.getString = getString;
 
-    function preload(fname, callback) {
+    function preload(fname, callback, progressCallback) {
+        if (typeof progressCallback === "undefined") { progressCallback = null; }
         var file = cache[fname];
         if (file != undefined) {
             callback(file);
@@ -59,6 +61,10 @@ define(["require", "exports"], function(require, exports) {
         var xhr = new XMLHttpRequest();
         xhr.onload = function () {
             callback(xhr.response);
+        };
+        xhr.onprogress = function (evt) {
+            if (progressCallback)
+                progressCallback(evt.loaded / evt.total);
         };
         xhr.open('GET', fname, true);
         xhr.responseType = 'arraybuffer';

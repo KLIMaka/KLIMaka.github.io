@@ -49,6 +49,16 @@ define(["require", "exports"], function(require, exports) {
         Element.prototype.elem = function () {
             return this.element;
         };
+
+        Element.prototype.attr = function (name, val) {
+            this.element.setAttribute(name, val);
+            return this;
+        };
+
+        Element.prototype.css = function (name, val) {
+            this.element.style[name] = val;
+            return this;
+        };
         return Element;
     })();
     exports.Element = Element;
@@ -72,32 +82,39 @@ define(["require", "exports"], function(require, exports) {
             this.append(tr);
             return this;
         };
+
+        Table.prototype.removeRow = function (row) {
+            this.elem().deleteRow(row);
+            return this;
+        };
         return Table;
     })(Element);
     exports.Table = Table;
 
     var Properties = (function (_super) {
         __extends(Properties, _super);
-        function Properties(props) {
+        function Properties(keys) {
             _super.call(this);
             this.className('props');
-            var keys = Object.keys(props);
-            var labels = {};
+            this.labels = {};
             for (var i = 0; i < keys.length; i++) {
                 var k = keys[i];
-                var l = exports.label(props[k]);
-                labels[k] = l;
+                var l = exports.label('');
+                this.labels[k] = l;
                 this.prop(k, l);
             }
-            Object.observe(props, function (changes) {
-                for (var i = 0; i < changes.length; i++) {
-                    var c = changes[i];
-                    labels[c.name].text(props[c.name] + '');
-                }
-            });
         }
         Properties.prototype.prop = function (name, el) {
             this.row([div('property_name').text(name), el]);
+            return this;
+        };
+
+        Properties.prototype.refresh = function (props) {
+            var fields = Object.keys(this.labels);
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i];
+                this.labels[field].text(props[field] + '');
+            }
             return this;
         };
         return Properties;
@@ -132,4 +149,52 @@ define(["require", "exports"], function(require, exports) {
         return div('frame').append(div('header').text(title)).append(div('hline')).append(div('content'));
     }
     exports.panel = panel;
+
+    var Progress = (function (_super) {
+        __extends(Progress, _super);
+        function Progress(title, max) {
+            if (typeof max === "undefined") { max = 100; }
+            _super.call(this, create('div'));
+            this.title = div('title').text(title);
+            this.progress = new Element(create('progress')).attr('max', max);
+            this.append(this.title).append(this.progress);
+        }
+        Progress.prototype.max = function (max) {
+            this.progress.attr('max', max);
+            return this;
+        };
+
+        Progress.prototype.setValue = function (val) {
+            this.progress.attr('value', val);
+            return this;
+        };
+        return Progress;
+    })(Element);
+    exports.Progress = Progress;
+
+    function progress(title, max) {
+        if (typeof max === "undefined") { max = 100; }
+        return new Progress(title, max);
+    }
+    exports.progress = progress;
+
+    var VerticalPanel = (function (_super) {
+        __extends(VerticalPanel, _super);
+        function VerticalPanel(className) {
+            _super.call(this, create('div'));
+            this.rows = 0;
+            this.className(className);
+        }
+        VerticalPanel.prototype.add = function (elem) {
+            this.append(elem);
+            return this.rows++;
+        };
+        return VerticalPanel;
+    })(Element);
+    exports.VerticalPanel = VerticalPanel;
+
+    function verticalPanel(className) {
+        return new VerticalPanel(className);
+    }
+    exports.verticalPanel = verticalPanel;
 });

@@ -83,6 +83,24 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
         ctx.fill();
     }
 
+    var loadPanel = UI.verticalPanel('loadPanel');
+    document.body.appendChild(loadPanel.elem());
+    var loaders = {};
+    var index = [];
+    function progress(fname) {
+        return function (p) {
+            var loader = loaders[fname];
+            if (loader == undefined) {
+                loader = UI.progress(fname);
+                loadPanel.add(loader);
+                loaders[fname] = loader;
+            }
+            loader.setValue(p * 100);
+            if (p == 1)
+                loader.css('display', 'none');
+        };
+    }
+
     function render(cfg, map, artFiles, pal) {
         var gl = GL.createContext(cfg.width, cfg.height, { alpha: false, antialias: false });
         gl.enable(gl.CULL_FACE);
@@ -96,7 +114,7 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
         };
 
         var panel = UI.panel('Info');
-        var props = UI.props(info);
+        var props = UI.props(['X:', 'Y:', 'Batches:', 'Sector:']);
         panel.append(props);
         var compass = IU.createEmptyCanvas(50, 50);
         panel.append(new UI.Element(compass));
@@ -173,6 +191,7 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
             info['Sector:'] = ms.sec;
             info['X:'] = ms.x;
             info['Y:'] = ms.y;
+            props.refresh(info);
             drawCompass(compass, control.getCamera().forward());
 
             control.move(time);
@@ -187,10 +206,10 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
     var artNames = [];
     for (var a = 0; a < 18; a++) {
         artNames[a] = path + 'TILES0' + ("00" + a).slice(-2) + '.ART';
-        getter.loader.load(artNames[a]);
+        getter.loader.load(artNames[a], progress(artNames[a]));
     }
 
-    getter.loader.loadString(cfgFile).load(rffFile).finish(function () {
+    getter.loader.loadString(cfgFile).load(rffFile, progress(rffFile)).finish(function () {
         var cfg = CFG.create(getter.getString(cfgFile));
         var rff = RFF.create(getter.get(rffFile));
         var pal = rff.get('BLOOD.PAL');
