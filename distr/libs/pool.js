@@ -1,4 +1,4 @@
-define(["require", "exports", './list'], function(require, exports, L) {
+define(["require", "exports", './list'], function (require, exports, L) {
     var Pool = (function () {
         function Pool(maxsize, allocator) {
             this.holes = new L.List();
@@ -15,11 +15,10 @@ define(["require", "exports", './list'], function(require, exports, L) {
             this.pool.push(this.allocator());
             return this.pool[this.pool.length - 1];
         };
-
         Pool.prototype.ret = function () {
             var vals = [];
-            for (var _i = 0; _i < (arguments.length - 0); _i++) {
-                vals[_i] = arguments[_i + 0];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                vals[_i - 0] = arguments[_i];
             }
             for (var i in vals) {
                 var val = vals[i];

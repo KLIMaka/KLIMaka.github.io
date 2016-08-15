@@ -1,4 +1,4 @@
-define(["require", "exports", '../../../libs/dataviewstream', './structs'], function(require, exports, data, build) {
+define(["require", "exports", '../../../libs/dataviewstream', './structs'], function (require, exports, data, build) {
     exports.sectorStruct = data.struct(build.Sector, [
         ['wallptr', data.ushort],
         ['wallnum', data.ushort],
@@ -24,7 +24,6 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs'], func
         ['hitag', data.ushort],
         ['extra', data.ushort]
     ]);
-
     exports.wallStruct = data.struct(build.Wall, [
         ['x', data.int],
         ['y', data.int],
@@ -44,7 +43,6 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs'], func
         ['hitag', data.ushort],
         ['extra', data.ushort]
     ]);
-
     exports.spriteStruct = data.struct(build.Sprite, [
         ['x', data.int],
         ['y', data.int],
@@ -70,7 +68,6 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs'], func
         ['hitag', data.ushort],
         ['extra', data.ushort]
     ]);
-
     exports.boardStruct = data.struct(build.Board, [
         ['version', data.uint],
         ['posx', data.int],
@@ -79,7 +76,6 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs'], func
         ['ang', data.ushort],
         ['cursectnum', data.ushort]
     ]);
-
     function loadBuildMap(stream) {
         var brd = exports.boardStruct.read(stream);
         brd.numsectors = data.ushort.read(stream);

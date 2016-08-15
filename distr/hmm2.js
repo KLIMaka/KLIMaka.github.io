@@ -4,9 +4,10 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-define(["require", "exports", './modules/engines/hmm2/agg', './modules/engines/hmm2/icn', './modules/engines/hmm2/objn', './modules/engines/hmm2/mp2', './modules/engines/hmm2/til', './libs/getter', './modules/pixelprovider', './libs/imgutils', './libs/mathutils'], function(require, exports, AGG, ICN, OBJN, MP2, TIL, getter, pixel, IU, MU) {
+define(["require", "exports", './modules/engines/hmm2/agg', './modules/engines/hmm2/icn', './modules/engines/hmm2/objn', './modules/engines/hmm2/mp2', './modules/engines/hmm2/til', './libs/getter', './modules/pixelprovider', './libs/imgutils', './libs/mathutils', './libs/browser'], function(require, exports, AGG, ICN, OBJN, MP2, TIL, getter, pixel, IU, MU, browser) {
     var RES = 'resources/engines/h2/heroes2.agg';
-    var MAP = 'resources/engines/h2/maps/' + config.map;
+    var MAP = 'resources/engines/h2/maps/' + browser.getQueryVariable('map');
+    ;
     var shadow = [0, 0, 0, 127];
 
     function getDetails(info) {

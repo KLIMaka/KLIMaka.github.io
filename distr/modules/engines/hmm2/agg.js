@@ -6,23 +6,18 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
     })();
     exports.FileRecord = FileRecord;
 
-    var aggStruct = data.struct(Object, [
-        ['num_files', data.ushort],
-        [
-            'fat', data.structArray(data.val('num_files'), data.struct(FileRecord, [
-                ['hash', data.uint],
-                ['offset', data.uint],
-                ['size', data.uint]
-            ]))]
+    var fat = data.struct(FileRecord, [
+        ['hash', data.uint],
+        ['offset', data.uint],
+        ['size', data.uint]
     ]);
 
     var AggFile = (function () {
         function AggFile(buf) {
             this.nametable = {};
             this.data = new data.DataViewStream(buf, true);
-            var info = aggStruct(this.data);
-            this.num_files = info.num_files;
-            this.fat = info.fat;
+            this.num_files = data.ushort.read(this.data);
+            this.fat = data.array(fat, this.num_files).read(this.data);
 
             var offset = this.data.mark();
             for (var i = 0; i < this.num_files; i++) {
@@ -32,7 +27,7 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
             var nametable = this.nametable;
             this.data.setOffset(offset);
             for (var i = 0; i < this.num_files; i++) {
-                nametable[data.string(15)(this.data)] = i;
+                nametable[data.string(15).read(this.data)] = i;
             }
         }
         AggFile.prototype.get = function (name) {

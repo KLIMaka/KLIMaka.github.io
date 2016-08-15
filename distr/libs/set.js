@@ -1,23 +1,20 @@
-define(["require", "exports"], function(require, exports) {
+define(["require", "exports"], function (require, exports) {
     var Set = (function () {
         function Set(array) {
-            if (typeof array === "undefined") { array = []; }
+            if (array === void 0) { array = []; }
             this.table = {};
             for (var i in array)
                 this.add(array[i]);
         }
         Set.prototype.add = function (val) {
-            this.table[val] = 1;
+            this.table[val.toString()] = 1;
         };
-
         Set.prototype.remove = function (val) {
-            this.table[val] = 0;
+            this.table[val.toString()] = 0;
         };
-
         Set.prototype.has = function (val) {
-            return this.table[val] == 1;
+            return this.table[val.toString()] == 1;
         };
-
         Set.prototype.values = function () {
             var arr = [];
             for (var i in this.table)
@@ -28,9 +25,8 @@ define(["require", "exports"], function(require, exports) {
         return Set;
     })();
     exports.Set = Set;
-
     function create(array) {
-        if (typeof array === "undefined") { array = []; }
+        if (array === void 0) { array = []; }
         return new Set(array);
     }
     exports.create = create;

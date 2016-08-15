@@ -1,33 +1,28 @@
-define(["require", "exports", '../../../libs/dataviewstream', './structs', './loader'], function(require, exports, data, build, loader) {
+define(["require", "exports", '../../../libs/dataviewstream', './structs', './loader'], function (require, exports, data, build, loader) {
     function decryptBuffer(buffer, size, key) {
         for (var i = 0; i < size; i++)
             buffer[i] = buffer[i] ^ (key + i);
     }
-
     function createStream(buf) {
         return new data.DataViewStream(new Uint8Array(buf).buffer, true);
     }
-
     var header1Struct = data.struct(Object, [
         ['startX', data.int],
         ['startY', data.int],
         ['startZ', data.int],
         ['startAng', data.short],
         ['startSec', data.short],
-        ['unk', data.short]
+        ['unk', data.short],
     ]);
-
     var header2Struct = data.struct(Object, [
-        ['unk', data.array(data.ubyte, 9)]
+        ['unk', data.array(data.ubyte, 9)],
     ]);
-
     var header3Struct = data.struct(Object, [
         ['mapRevisions', data.int],
         ['numSectors', data.short],
         ['numWalls', data.short],
-        ['numSprites', data.short]
+        ['numSprites', data.short],
     ]);
-
     function readSectors(header3, stream) {
         var dec = ((header3.mapRevisions * loader.sectorStruct.sizeof()) & 0xFF);
         var sectors = [];
@@ -42,7 +37,6 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs', './lo
         }
         return sectors;
     }
-
     function readWalls(header3, stream) {
         var dec = (((header3.mapRevisions * loader.sectorStruct.sizeof()) | 0x4d) & 0xFF);
         var walls = [];
@@ -57,7 +51,6 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs', './lo
         }
         return walls;
     }
-
     function readSprites(header3, stream) {
         var dec = (((header3.mapRevisions * loader.spriteStruct.sizeof()) | 0x4d) & 0xFF);
         var sprites = [];
@@ -72,7 +65,6 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs', './lo
         }
         return sprites;
     }
-
     function createBoard(version, header1, header3, sectors, walls, sprites) {
         var brd = new build.Board();
         brd.version = version;
@@ -89,7 +81,6 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs', './lo
         brd.sprites = sprites;
         return brd;
     }
-
     function loadBloodMap(stream) {
         var header = data.int.read(stream);
         var version = data.short.read(stream);
@@ -101,11 +92,9 @@ define(["require", "exports", '../../../libs/dataviewstream', './structs', './lo
         decryptBuffer(buf, header3Struct.sizeof(), 0x68);
         var header3 = header3Struct.read(createStream(buf));
         stream.skip(128 + (1 << header1.unk) * 2);
-
         var sectors = readSectors(header3, stream);
         var walls = readWalls(header3, stream);
         var sprites = readSprites(header3, stream);
-
         return createBoard(version, header1, header3, sectors, walls, sprites);
     }
     exports.loadBloodMap = loadBloodMap;

@@ -1,9 +1,8 @@
-define(["require", "exports"], function(require, exports) {
+define(["require", "exports"], function (require, exports) {
     function drag(e) {
         e.stopPropagation();
         e.preventDefault();
     }
-
     var DropFileReader = (function () {
         function DropFileReader(elem, validator, callback) {
             this.elem = elem;
@@ -12,9 +11,7 @@ define(["require", "exports"], function(require, exports) {
             var self = this;
             elem.addEventListener("dragenter", drag, false);
             elem.addEventListener("dragover", drag, false);
-            elem.addEventListener("drop", function (e) {
-                self.drop(e);
-            }, false);
+            elem.addEventListener("drop", function (e) { self.drop(e); }, false);
         }
         DropFileReader.prototype.drop = function (e) {
             e.stopPropagation();
@@ -24,12 +21,9 @@ define(["require", "exports"], function(require, exports) {
             if (!valid)
                 return;
             e.target.classList.add('valid');
-
             var self = this;
             var reader = new FileReader();
-            reader.onload = function (e) {
-                self.callback(e.target.result);
-            };
+            reader.onload = function (e) { self.callback(e.target.result); };
             reader.readAsArrayBuffer(file);
         };
         return DropFileReader;

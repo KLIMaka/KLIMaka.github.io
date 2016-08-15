@@ -1,4 +1,4 @@
-define(["require", "exports", '../../../libs/dataviewstream'], function(require, exports, data) {
+define(["require", "exports", '../../../libs/dataviewstream'], function (require, exports, data) {
     var GrpFile = (function () {
         function GrpFile(buf) {
             this.files = {};
@@ -17,7 +17,6 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
                 offset += size;
             }
         };
-
         GrpFile.prototype.get = function (fname) {
             var off = this.files[fname];
             if (off != undefined) {
@@ -29,14 +28,12 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
         return GrpFile;
     })();
     exports.GrpFile = GrpFile;
-
     function create(buf) {
         return new GrpFile(buf);
     }
     exports.create = create;
-
     function createPalette(stream) {
-        var pal = new Array(768);
+        var pal = new Uint8Array(768);
         for (var i = 0; i < 256; i++) {
             pal[i * 3 + 0] = stream.readUByte() * 4;
             pal[i * 3 + 1] = stream.readUByte() * 4;

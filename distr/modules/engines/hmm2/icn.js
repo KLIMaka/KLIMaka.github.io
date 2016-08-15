@@ -15,27 +15,27 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
     })();
     exports.Size = Size;
 
+    var header = data.struct(Header, [
+        ['offsetX', data.short],
+        ['offsetY', data.short],
+        ['width', data.ushort],
+        ['height', data.ushort],
+        ['type', data.ubyte],
+        ['offsetData', data.uint]
+    ]);
+
     var icnStruct = data.struct(Object, [
         ['count', data.ushort],
-        ['size', data.uint],
-        [
-            'headers', data.structArray(data.val('count'), data.struct(Header, [
-                ['offsetX', data.short],
-                ['offsetY', data.short],
-                ['width', data.ushort],
-                ['height', data.ushort],
-                ['type', data.ubyte],
-                ['offsetData', data.uint]
-            ]))]
+        ['size', data.uint]
     ]);
 
     var IcnFile = (function () {
-        function IcnFile(data) {
-            this.data = data;
-            this.globoff = this.data.mark();
-            var info = icnStruct(this.data);
-            this.count = info.count;
-            this.headers = info.headers;
+        function IcnFile(stream) {
+            this.stream = stream;
+            this.globoff = this.stream.mark();
+            this.count = data.ushort.read(this.stream);
+            data.uint.read(this.stream);
+            this.headers = data.array(header, this.count).read(this.stream);
         }
         IcnFile.prototype.getCount = function () {
             return this.count;
@@ -43,11 +43,11 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
 
         IcnFile.prototype.getFrame = function (i) {
             var h = this.headers[i];
-            this.data.setOffset(this.globoff + h.offsetData + 6);
+            this.stream.setOffset(this.globoff + h.offsetData + 6);
             if (h.type == 0x20)
-                return renderIcnFrame2(this.data, h.width, h.height);
+                return renderIcnFrame2(this.stream, h.width, h.height);
             else
-                return renderIcnFrame1(this.data, h.width, h.height);
+                return renderIcnFrame1(this.stream, h.width, h.height);
         };
 
         IcnFile.prototype.getInfo = function (i) {

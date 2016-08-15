@@ -1,4 +1,4 @@
-define(["require", "exports", './list'], function(require, exports, L) {
+define(["require", "exports", '../libs/list'], function(require, exports, L) {
     var Particle = (function () {
         function Particle() {
             this.attr = {};

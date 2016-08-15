@@ -1,4 +1,4 @@
-define(["require", "exports", '../../../libs/dataviewstream'], function(require, exports, data) {
+define(["require", "exports", '../../../libs/dataviewstream'], function (require, exports, data) {
     var headerStruct = data.struct(Object, [
         ['sign', data.string(4)],
         ['version', data.uint],
@@ -15,7 +15,6 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
         ['filename', data.string(11)],
         ['_', data.uint]
     ]);
-
     var RffFile = (function () {
         function RffFile(buf) {
             this.namesTable = {};
@@ -44,11 +43,9 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
                 this.namesTable[r.filename] = i;
             }
         };
-
         RffFile.prototype.convertFname = function (name) {
             return name.substr(3) + '.' + name.substr(0, 3);
         };
-
         RffFile.prototype.get = function (fname) {
             var record = this.fat[this.namesTable[fname]];
             this.data.setOffset(record.offset);
@@ -61,7 +58,6 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
         return RffFile;
     })();
     exports.RffFile = RffFile;
-
     function create(buf) {
         return new RffFile(buf);
     }

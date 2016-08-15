@@ -1,10 +1,9 @@
-var __extends = this.__extends || function (d, b) {
+var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-define(["require", "exports", '../libs/mathutils', './anim'], function(require, exports, MU, Anim) {
+define(["require", "exports", '../libs/mathutils', './anim'], function (require, exports, MU, Anim) {
     var AbstractPixelProvider = (function () {
         function AbstractPixelProvider(w, h) {
             this.w = w;
@@ -12,23 +11,18 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
             if (w < 0 || h < 0)
                 throw new Error('Invalid size');
         }
-        AbstractPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) {
-        };
-
+        AbstractPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) { };
         AbstractPixelProvider.prototype.getPixel = function (x, y) {
             var dst = new Uint8Array(4);
             this.putToDst(x, y, dst, 0);
             return dst;
         };
-
         AbstractPixelProvider.prototype.getWidth = function () {
             return this.w;
         };
-
         AbstractPixelProvider.prototype.getHeight = function () {
             return this.h;
         };
-
         AbstractPixelProvider.prototype.render = function (dst) {
             var off = 0;
             for (var y = 0; y < this.h; y++) {
@@ -38,7 +32,6 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
                 }
             }
         };
-
         AbstractPixelProvider.prototype.blend = function (dst) {
             var tmpdst = new Uint8Array(4);
             var off = 0;
@@ -61,7 +54,6 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         return AbstractPixelProvider;
     })();
     exports.AbstractPixelProvider = AbstractPixelProvider;
-
     var ConstPixelProvider = (function (_super) {
         __extends(ConstPixelProvider, _super);
         function ConstPixelProvider(color, w, h) {
@@ -77,7 +69,6 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         return ConstPixelProvider;
     })(AbstractPixelProvider);
     exports.ConstPixelProvider = ConstPixelProvider;
-
     var RGBAArrayPixelProvider = (function (_super) {
         __extends(RGBAArrayPixelProvider, _super);
         function RGBAArrayPixelProvider(arr, w, h) {
@@ -96,14 +87,13 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         return RGBAArrayPixelProvider;
     })(AbstractPixelProvider);
     exports.RGBAArrayPixelProvider = RGBAArrayPixelProvider;
-
     var RGBPalPixelProvider = (function (_super) {
         __extends(RGBPalPixelProvider, _super);
         function RGBPalPixelProvider(arr, pal, w, h, alpha, transIdx, shadow, shadowColor) {
-            if (typeof alpha === "undefined") { alpha = 255; }
-            if (typeof transIdx === "undefined") { transIdx = -1; }
-            if (typeof shadow === "undefined") { shadow = -1; }
-            if (typeof shadowColor === "undefined") { shadowColor = [0, 0, 0, 0]; }
+            if (alpha === void 0) { alpha = 255; }
+            if (transIdx === void 0) { transIdx = -1; }
+            if (shadow === void 0) { shadow = -1; }
+            if (shadowColor === void 0) { shadowColor = [0, 0, 0, 0]; }
             _super.call(this, w, h);
             this.arr = arr;
             this.pal = pal;
@@ -133,11 +123,10 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         return RGBPalPixelProvider;
     })(AbstractPixelProvider);
     exports.RGBPalPixelProvider = RGBPalPixelProvider;
-
     var RectPixelProvider = (function (_super) {
         __extends(RectPixelProvider, _super);
         function RectPixelProvider(provider, sx, sy, ex, ey, paddColor) {
-            if (typeof paddColor === "undefined") { paddColor = [0, 0, 0, 0]; }
+            if (paddColor === void 0) { paddColor = [0, 0, 0, 0]; }
             _super.call(this, ex - sx, ey - sy);
             this.provider = provider;
             this.sx = sx;
@@ -158,7 +147,6 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
             else
                 this.provider.putToDst(nx, ny, dst, dstoff);
         };
-
         RectPixelProvider.prototype.putPadding = function (dst, dstoff) {
             dst[dstoff] = this.paddColor[0];
             dst[dstoff + 1] = this.paddColor[1];
@@ -168,7 +156,6 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         return RectPixelProvider;
     })(AbstractPixelProvider);
     exports.RectPixelProvider = RectPixelProvider;
-
     var ResizePixelProvider = (function (_super) {
         __extends(ResizePixelProvider, _super);
         function ResizePixelProvider(provider, w, h) {
@@ -183,7 +170,6 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         return ResizePixelProvider;
     })(AbstractPixelProvider);
     exports.ResizePixelProvider = ResizePixelProvider;
-
     var AxisSwapPixelProvider = (function (_super) {
         __extends(AxisSwapPixelProvider, _super);
         function AxisSwapPixelProvider(provider) {
@@ -196,7 +182,6 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         return AxisSwapPixelProvider;
     })(AbstractPixelProvider);
     exports.AxisSwapPixelProvider = AxisSwapPixelProvider;
-
     var FlipPixelProvider = (function (_super) {
         __extends(FlipPixelProvider, _super);
         function FlipPixelProvider(provider, xswap, yswap) {
@@ -211,68 +196,60 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         return FlipPixelProvider;
     })(AbstractPixelProvider);
     exports.FlipPixelProvider = FlipPixelProvider;
-
     function fromPal(arr, pal, w, h, alpha, transIdx, shadow, shadowColor) {
-        if (typeof alpha === "undefined") { alpha = 255; }
-        if (typeof transIdx === "undefined") { transIdx = -1; }
-        if (typeof shadow === "undefined") { shadow = -1; }
-        if (typeof shadowColor === "undefined") { shadowColor = [0, 0, 0, 0]; }
+        if (alpha === void 0) { alpha = 255; }
+        if (transIdx === void 0) { transIdx = -1; }
+        if (shadow === void 0) { shadow = -1; }
+        if (shadowColor === void 0) { shadowColor = [0, 0, 0, 0]; }
         return new RGBPalPixelProvider(arr, pal, w, h, alpha, transIdx, shadow, shadowColor);
     }
     exports.fromPal = fromPal;
-
     function axisSwap(provider) {
         return new AxisSwapPixelProvider(provider);
     }
     exports.axisSwap = axisSwap;
-
     function xflip(provider) {
         return new FlipPixelProvider(provider, true, false);
     }
     exports.xflip = xflip;
-
     function yflip(provider) {
         return new FlipPixelProvider(provider, false, true);
     }
     exports.yflip = yflip;
-
     function xyflip(provider) {
         return new FlipPixelProvider(provider, true, true);
     }
     exports.xyflip = xyflip;
-
     function rect(provider, sx, sy, ex, ey, paddColod) {
-        if (typeof paddColod === "undefined") { paddColod = [0, 0, 0, 0]; }
+        if (paddColod === void 0) { paddColod = [0, 0, 0, 0]; }
         if (sx == 0 && sy == 0 && provider.getHeight() == ey && provider.getWidth() == ex)
             return provider;
         return new RectPixelProvider(provider, sx, sy, ex, ey, paddColod);
     }
     exports.rect = rect;
-
     function center(provider, w, h, paddColod) {
-        if (typeof paddColod === "undefined") { paddColod = [0, 0, 0, 0]; }
+        if (paddColod === void 0) { paddColod = [0, 0, 0, 0]; }
         var dw = MU.int((provider.getWidth() - w) / 2);
         var dh = MU.int((provider.getHeight() - h) / 2);
-        return exports.rect(provider, dw, dh, w + dw, h + dh);
+        return rect(provider, dw, dh, w + dw, h + dh);
     }
     exports.center = center;
-
     function resize(provider, w, h) {
         if (provider.getHeight() == h && provider.getWidth() == w)
             return provider;
         return new ResizePixelProvider(provider, w, h);
     }
     exports.resize = resize;
-
     function fit(w, h, provider, paddColor) {
-        if (typeof paddColor === "undefined") { paddColor = [0, 0, 0, 0]; }
+        if (paddColor === void 0) { paddColor = [0, 0, 0, 0]; }
         if (provider.getHeight() == h && provider.getWidth() == w)
             return provider;
         if (provider.getWidth() <= w && provider.getHeight() <= h) {
             var sx = (provider.getWidth() - w) / 2;
             var sy = (provider.getHeight() - h) / 2;
-            return exports.rect(provider, sx, sy, w + sx, h + sy, paddColor);
-        } else {
+            return rect(provider, sx, sy, w + sx, h + sy, paddColor);
+        }
+        else {
             var aspect = provider.getWidth() / provider.getHeight();
             var nw = provider.getWidth();
             var nh = provider.getHeight();
@@ -290,14 +267,14 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
             if (r) {
                 var sx = (nw - w) / 2;
                 var sy = (nh - h) / 2;
-                return exports.rect(exports.resize(provider, nw, nh), sx, sy, w + sx, h + sy, paddColor);
-            } else {
-                return exports.resize(provider, w, h);
+                return rect(resize(provider, nw, nh), sx, sy, w + sx, h + sy, paddColor);
+            }
+            else {
+                return resize(provider, w, h);
             }
         }
     }
     exports.fit = fit;
-
     var AnimatedPixelProvider = (function (_super) {
         __extends(AnimatedPixelProvider, _super);
         function AnimatedPixelProvider(frames, fps) {
@@ -306,7 +283,6 @@ define(["require", "exports", '../libs/mathutils', './anim'], function(require, 
         AnimatedPixelProvider.prototype.getWidth = function () {
             return this.animate(0).getWidth();
         };
-
         AnimatedPixelProvider.prototype.getHeight = function () {
             return this.animate(0).getHeight();
         };

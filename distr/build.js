@@ -1,23 +1,17 @@
-define(["require", "exports", './modules/gl', './modules/shaders', './libs/getter', './libs/dataviewstream', './libs/mathutils', './modules/controller3d', './modules/engines/build/bloodloader', './modules/engines/build/builder', './modules/engines/build/utils', './modules/engines/build/art', './modules/pixelprovider', './modules/textures', './libs/config', './modules/engines/build/rff', './modules/ui/ui', './libs/imgutils', './libs/browser'], function(require, exports, GL, shaders, getter, data, MU, controller, bloodloader, builder, BU, ART, pixel, TEX, CFG, RFF, UI, IU, browser) {
+define(["require", "exports", './modules/gl', './modules/shaders', './libs/getter', './libs/dataviewstream', './libs/mathutils', './modules/controller3d', './modules/engines/build/bloodloader', './modules/engines/build/builder', './modules/engines/build/utils', './modules/engines/build/art', './modules/pixelprovider', './modules/textures', './libs/config', './modules/engines/build/rff', './modules/ui/ui', './libs/imgutils', './libs/browser'], function (require, exports, GL, shaders, getter, data, MU, controller, bloodloader, builder, BU, ART, pixel, TEX, CFG, RFF, UI, IU, browser) {
     var rffFile = 'resources/engines/blood/BLOOD.RFF';
     var cfgFile = 'build.cfg';
     var selectPass = false;
-
     var Mat = (function () {
         function Mat(baseShader, selectShader, tex) {
             this.baseShader = baseShader;
             this.selectShader = selectShader;
             this.tex = tex;
         }
-        Mat.prototype.getShader = function () {
-            return selectPass ? this.selectShader : this.baseShader;
-        };
-        Mat.prototype.getTexture = function (sampler) {
-            return this.tex[sampler];
-        };
+        Mat.prototype.getShader = function () { return selectPass ? this.selectShader : this.baseShader; };
+        Mat.prototype.getTexture = function (sampler) { return this.tex[sampler]; };
         return Mat;
     })();
-
     var MF = (function () {
         function MF(baseShader, selectShader, spriteShader, spriteSelectShader) {
             this.baseShader = baseShader;
@@ -28,13 +22,11 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
         MF.prototype.solid = function (tex) {
             return new Mat(this.baseShader, this.selectShader, { base: tex });
         };
-
         MF.prototype.sprite = function (tex) {
             return new Mat(this.spriteShader, this.spriteSelectShader, { base: tex });
         };
         return MF;
     })();
-
     var TP = (function () {
         function TP(arts, pal, gl) {
             this.arts = arts;
@@ -46,24 +38,20 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
             var tex = this.textures[picnum];
             if (tex != undefined)
                 return tex;
-
             var info = this.arts.getInfo(picnum);
             var arr = new Uint8Array(info.w * info.h * 4);
             var pp = pixel.axisSwap(pixel.fromPal(info.img, this.pal, info.w, info.h, 255, 255));
             pp.render(arr);
-            tex = new TEX.TextureImpl(pp.getWidth(), pp.getHeight(), this.gl, arr);
-
+            tex = TEX.createTexture(pp.getWidth(), pp.getHeight(), this.gl, arr);
             this.textures[picnum] = tex;
             return tex;
         };
-
         TP.prototype.getInfo = function (picnum) {
             var info = this.arts.getInfo(picnum);
             return info.anum;
         };
         return TP;
     })();
-
     function drawCompass(canvas, eye) {
         var ctx = canvas.getContext('2d');
         var w = canvas.width;
@@ -82,7 +70,6 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
         ctx.fillStyle = 'black';
         ctx.fill();
     }
-
     var loadPanel = UI.verticalPanel('loadPanel');
     document.body.appendChild(loadPanel.elem());
     var loaders = {};
@@ -100,26 +87,33 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
                 loader.css('display', 'none');
         };
     }
-
+    var time = 0;
+    function tic() {
+        time = new Date().getTime();
+    }
+    function tac() {
+        return (new Date().getTime() - time) / 1000;
+    }
     function render(cfg, map, artFiles, pal) {
         var gl = GL.createContext(cfg.width, cfg.height, { alpha: false, antialias: false });
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
-
+        //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        //gl.enable(gl.BLEND);
         var info = {
             'X:': 0,
             'Y:': 0,
             'Batches:': 0,
-            'Sector:': 0
+            'Sector:': 0,
+            'Processing:': 0,
+            'Rendering:': 0
         };
-
         var panel = UI.panel('Info');
-        var props = UI.props(['X:', 'Y:', 'Batches:', 'Sector:']);
+        var props = UI.props(['X:', 'Y:', 'Batches:', 'Sector:', 'Processing:', 'Rendering:']);
         panel.append(props);
         var compass = IU.createEmptyCanvas(50, 50);
         panel.append(new UI.Element(compass));
         document.body.appendChild(panel.elem());
-
         var board = bloodloader.loadBloodMap(new data.DataViewStream(map, true));
         var processor = new builder.BoardProcessor(board);
         var baseShader = shaders.createShader(gl, 'resources/shaders/build_base');
@@ -129,7 +123,6 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
         var mf = new MF(baseShader, selectShader, spriteShader, spriteSelectShader);
         var tp = new TP(artFiles, pal, gl);
         processor.build(gl, tp, mf);
-
         var control = new controller.Controller3D(gl);
         var playerstart = BU.getPlayerStart(board);
         var ms = new BU.MoveStruct();
@@ -138,78 +131,66 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
         ms.y = playerstart.y;
         ms.z = playerstart.z;
         control.getCamera().setPosXYZ(ms.x, ms.z / -16 + 1024, ms.y);
-
         var activeIdx = 0;
-
         var binder = new GL.UniformBinder();
-        binder.addResolver('MVP', GL.mat4Setter, function () {
-            return control.getMatrix();
-        });
-        binder.addResolver('MV', GL.mat4Setter, function () {
-            return control.getModelViewMatrix();
-        });
-        binder.addResolver('P', GL.mat4Setter, function () {
-            return control.getProjectionMatrix();
-        });
-        binder.addResolver('eyepos', GL.vec3Setter, function () {
-            return control.getCamera().getPos();
-        });
-        binder.addResolver('eyedir', GL.vec3Setter, function () {
-            return control.getCamera().forward();
-        });
-        binder.addResolver('activeIdx', GL.int1Setter, function () {
-            return activeIdx;
-        });
-
+        binder.addResolver('MVP', GL.mat4Setter, function () { return control.getMatrix(); });
+        binder.addResolver('MV', GL.mat4Setter, function () { return control.getModelViewMatrix(); });
+        binder.addResolver('P', GL.mat4Setter, function () { return control.getProjectionMatrix(); });
+        binder.addResolver('eyepos', GL.vec3Setter, function () { return control.getCamera().getPos(); });
+        binder.addResolver('eyedir', GL.vec3Setter, function () { return control.getCamera().forward(); });
+        binder.addResolver('activeIdx', GL.int1Setter, function () { return activeIdx; });
         GL.animate(gl, function (gl, time) {
             if (cfg.select) {
+                //select draw
                 selectPass = true;
                 gl.clearColor(0, 0, 0, 0);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
                 var models = processor.get(ms, control.getCamera().forward());
                 GL.draw(gl, models, binder);
-
                 var id = GL.readId(gl, control.getX(), control.getY());
                 activeIdx = id;
                 if (control.isClick()) {
                     console.log(processor.getByIdx(activeIdx));
                 }
             }
-
+            // actual draw
             selectPass = false;
             gl.clearColor(0.1, 0.3, 0.1, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             var pos = control.getCamera().getPos();
             ms.x = MU.int(pos[0]);
             ms.y = MU.int(pos[2]);
-
+            tic();
             var models = processor.get(ms, control.getCamera().forward());
-
+            info['Processing:'] = tac();
+            // var models = processor.getAll();
+            tic();
             GL.draw(gl, models, binder);
-
+            info['Rendering:'] = tac();
             info['Batches:'] = models.length;
             info['Sector:'] = ms.sec;
             info['X:'] = ms.x;
             info['Y:'] = ms.y;
             props.refresh(info);
             drawCompass(compass, control.getCamera().forward());
-
-            control.move(time);
+            // control.move(time);
+            var d = control.move1(time);
+            BU.move1(board, ms, d[0], d[1]);
+            BU.fall(board, ms, time * 8192 * 4);
+            control.getCamera().setPosXYZ(ms.x, ms.z / -16 + 1024, ms.y);
         });
-
-        gl.canvas.oncontextmenu = function () {
-            return false;
-        };
+        gl.canvas.oncontextmenu = function () { return false; };
     }
-
     var path = 'resources/engines/blood/';
     var artNames = [];
     for (var a = 0; a < 18; a++) {
         artNames[a] = path + 'TILES0' + ("00" + a).slice(-2) + '.ART';
         getter.loader.load(artNames[a], progress(artNames[a]));
     }
-
-    getter.loader.loadString(cfgFile).load(rffFile, progress(rffFile)).finish(function () {
+    getter.loader
+        .loadString(cfgFile)
+        .load(rffFile, progress(rffFile))
+        .finish(function () {
         var cfg = CFG.create(getter.getString(cfgFile));
         var rff = RFF.create(getter.get(rffFile));
         var pal = rff.get('BLOOD.PAL');
@@ -217,7 +198,6 @@ define(["require", "exports", './modules/gl', './modules/shaders', './libs/gette
         for (var a = 0; a < 18; a++)
             arts.push(ART.create(new data.DataViewStream(getter.get(artNames[a]), true)));
         var artFiles = ART.createArts(arts);
-
         var map = rff.get(browser.getQueryVariable('map')).buffer;
         render(cfg, map, artFiles, pal);
     });

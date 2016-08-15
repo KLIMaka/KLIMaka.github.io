@@ -1,11 +1,16 @@
-define(["require", "exports"], function(require, exports) {
+define(["require", "exports"], function (require, exports) {
+    function clear(gl, shader, data) {
+        gl.clearColor(data[0], data[1], data[2], data[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        return shader;
+    }
+    exports.clear = clear;
     function shader(gl, shader, data) {
         var shader = data;
         gl.useProgram(shader.getProgram());
         return shader;
     }
     exports.shader = shader;
-
     function vertexBuffers(gl, shader, data) {
         if (shader == null)
             throw new Error('Attempt to set buffers wo shader');
@@ -25,37 +30,25 @@ define(["require", "exports"], function(require, exports) {
         return shader;
     }
     exports.vertexBuffers = vertexBuffers;
-
     function indexBuffer(gl, shader, data) {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, data.getBuffer());
         return shader;
     }
     exports.indexBuffer = indexBuffer;
-
     function drawCall(gl, shader, data) {
         gl.drawElements(data[0], data[1], gl.UNSIGNED_SHORT, data[2]);
         return shader;
     }
     exports.drawCall = drawCall;
-
     exports.setters = {
-        mat4: function (gl, loc, val) {
-            return gl.uniformMatrix4fv(loc, false, val);
-        },
-        vec3: function (gl, loc, val) {
-            return gl.uniform3fv(loc, val);
-        },
-        vec4: function (gl, loc, val) {
-            return gl.uniform4fv(loc, val);
-        },
-        int1: function (gl, loc, val) {
-            return gl.uniform1i(loc, val);
-        },
-        flt1: function (gl, loc, val) {
-            return gl.uniform1f(loc, val);
-        }
+        mat4: function (gl, loc, val) { return gl.uniformMatrix4fv(loc, false, val); },
+        int2: function (gl, loc, val) { return gl.uniform2iv(loc, val); },
+        vec2: function (gl, loc, val) { return gl.uniform2fv(loc, val); },
+        vec3: function (gl, loc, val) { return gl.uniform3fv(loc, val); },
+        vec4: function (gl, loc, val) { return gl.uniform4fv(loc, val); },
+        int1: function (gl, loc, val) { return gl.uniform1i(loc, val); },
+        flt1: function (gl, loc, val) { return gl.uniform1f(loc, val); }
     };
-
     function uniforms(gl, shader, data) {
         for (var i = 0; i < data.length; i += 3) {
             var name = data[i];
@@ -69,7 +62,16 @@ define(["require", "exports"], function(require, exports) {
         return shader;
     }
     exports.uniforms = uniforms;
-
+    function sampler(gl, shader, data) {
+        var unit = data[0];
+        var sampler = data[1];
+        var tex = data[2];
+        gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.uniform1i(shader.getUniformLocation(sampler, gl), unit);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        return shader;
+    }
+    exports.sampler = sampler;
     function exec(cmds, gl) {
         var shader = null;
         for (var i = 0; i < cmds.length; i += 2) {

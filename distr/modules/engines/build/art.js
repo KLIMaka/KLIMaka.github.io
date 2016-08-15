@@ -1,4 +1,4 @@
-define(["require", "exports", '../../../libs/dataviewstream'], function(require, exports, data) {
+define(["require", "exports", '../../../libs/dataviewstream'], function (require, exports, data) {
     var ArtInfo = (function () {
         function ArtInfo(w, h, anum, img) {
             this.w = w;
@@ -9,7 +9,6 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
         return ArtInfo;
     })();
     exports.ArtInfo = ArtInfo;
-
     var ArtFile = (function () {
         function ArtFile(stream) {
             this.stream = stream;
@@ -27,7 +26,6 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
                 offsets[i] = offset;
                 offset += ws[i] * hs[i];
             }
-
             this.offsets = offsets;
             this.ws = ws;
             this.hs = hs;
@@ -45,18 +43,15 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
             var pixels = data.array(data.ubyte, w * h).read(this.stream);
             return new ArtInfo(w, h, anum, pixels);
         };
-
         ArtFile.prototype.getStart = function () {
             return this.start;
         };
-
         ArtFile.prototype.getEnd = function () {
             return this.end;
         };
         return ArtFile;
     })();
     exports.ArtFile = ArtFile;
-
     var ArtFiles = (function () {
         function ArtFiles(arts) {
             this.arts = arts;
@@ -69,7 +64,6 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
             }
             return null;
         };
-
         ArtFiles.prototype.getInfo = function (id) {
             var art = this.getArt(id);
             if (art == null)
@@ -79,12 +73,10 @@ define(["require", "exports", '../../../libs/dataviewstream'], function(require,
         return ArtFiles;
     })();
     exports.ArtFiles = ArtFiles;
-
     function create(stream) {
         return new ArtFile(stream);
     }
     exports.create = create;
-
     function createArts(arts) {
         return new ArtFiles(arts);
     }

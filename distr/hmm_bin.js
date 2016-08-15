@@ -1,4 +1,4 @@
-define(["require", "exports", './modules/engines/hmm2/agg', './modules/engines/hmm2/icn', './modules/engines/hmm2/bin', './libs/getter'], function(require, exports, AGG, ICN, BIN, getter) {
+define(["require", "exports", './modules/engines/hmm2/agg', './modules/engines/hmm2/icn', './modules/engines/hmm2/bin', './libs/getter', './libs/browser'], function(require, exports, AGG, ICN, BIN, getter, BROWSER) {
     var IP = (function () {
         function IP(aggFile) {
             this.aggFile = aggFile;
@@ -15,7 +15,7 @@ define(["require", "exports", './modules/engines/hmm2/agg', './modules/engines/h
         var aggFile = AGG.create(getter.get(RES));
         var pal = AGG.createPalette(aggFile.get('KB.PAL'));
         var ip = new IP(aggFile);
-        var bin = BIN.create(aggFile.get(config.binname), pal);
+        var bin = BIN.create(aggFile.get(BROWSER.getQueryVariable('name')), pal);
         var canvas = bin.render(ip);
         document.body.appendChild(canvas);
     });

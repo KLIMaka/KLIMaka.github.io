@@ -1,36 +1,29 @@
-define(["require", "exports", './batcher'], function(require, exports, BATCH) {
+define(["require", "exports", './batcher'], function (require, exports, BATCH) {
     function createContext(w, h, opts) {
-        if (typeof opts === "undefined") { opts = {}; }
+        if (opts === void 0) { opts = {}; }
         var canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;
         canvas.id = 'gl';
         var gl = canvas.getContext('webgl', opts);
-
         document.body.appendChild(gl.canvas);
         document.body.style.overflow = 'hidden';
         gl.canvas.style.position = 'absolute';
         return gl;
     }
     exports.createContext = createContext;
-
     function resize(gl) {
         var canvas = gl.canvas;
-
         var displayWidth = canvas.clientWidth;
         var displayHeight = canvas.clientHeight;
-
         if (canvas.width != displayWidth || canvas.height != displayHeight) {
             canvas.width = displayWidth;
             canvas.height = displayHeight;
-
             gl.viewport(0, 0, canvas.width, canvas.height);
         }
     }
-
     function animate(gl, callback) {
         var time = new Date().getTime();
-
         function update() {
             resize(gl);
             var now = new Date().getTime();
@@ -38,11 +31,9 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
             requestAnimationFrame(update);
             time = now;
         }
-
         update();
     }
     exports.animate = animate;
-
     var UniformMatrix4fvSetter = (function () {
         function UniformMatrix4fvSetter() {
         }
@@ -53,7 +44,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
     })();
     exports.UniformMatrix4fvSetter = UniformMatrix4fvSetter;
     exports.mat4Setter = new UniformMatrix4fvSetter();
-
     var Uniform3fvSetter = (function () {
         function Uniform3fvSetter() {
         }
@@ -64,7 +54,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
     })();
     exports.Uniform3fvSetter = Uniform3fvSetter;
     exports.vec3Setter = new Uniform3fvSetter();
-
     var Uniform4fvSetter = (function () {
         function Uniform4fvSetter() {
         }
@@ -75,7 +64,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
     })();
     exports.Uniform4fvSetter = Uniform4fvSetter;
     exports.vec4Setter = new Uniform4fvSetter();
-
     var UniformIntSetter = (function () {
         function UniformIntSetter() {
         }
@@ -86,7 +74,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
     })();
     exports.UniformIntSetter = UniformIntSetter;
     exports.int1Setter = new UniformIntSetter();
-
     var UniformFloatSetter = (function () {
         function UniformFloatSetter() {
         }
@@ -97,7 +84,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
     })();
     exports.UniformFloatSetter = UniformFloatSetter;
     exports.float1Setter = new UniformFloatSetter();
-
     var UniformBinder = (function () {
         function UniformBinder() {
             this.resolvers = {};
@@ -116,7 +102,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
                 this.setters[uniform].setUniform(gl, loc, value);
             }
         };
-
         UniformBinder.prototype.addResolver = function (name, setter, resolver) {
             this.setters[name] = setter;
             this.resolvers[name] = resolver;
@@ -124,7 +109,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
         return UniformBinder;
     })();
     exports.UniformBinder = UniformBinder;
-
     function binder(resolvers) {
         var binder = new UniformBinder();
         for (var i = 0; i < resolvers.length; i++) {
@@ -134,12 +118,10 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
         return binder;
     }
     exports.binder = binder;
-
     function globalUniforms(gl, shader, globalBinder) {
         globalBinder.bind(gl, shader);
         return shader;
     }
-
     function drawModel(gl, shader, model) {
         var samplers = shader.getSamplers();
         for (var unit = 0; unit < samplers.length; unit++) {
@@ -149,7 +131,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
         gl.drawElements(model.getMode(), model.getLength(), gl.UNSIGNED_SHORT, model.getOffset());
         return shader;
     }
-
     function initTextures(gl, shader, data) {
         var samplers = shader.getSamplers();
         for (var unit = 0; unit < samplers.length; unit++) {
@@ -159,7 +140,6 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
         }
         return shader;
     }
-
     function draw(gl, models, globalBinder) {
         var cmds = [];
         var curshader = null;
@@ -178,11 +158,10 @@ define(["require", "exports", './batcher'], function(require, exports, BATCH) {
         new BATCH.exec(cmds, gl);
     }
     exports.draw = draw;
-
     var pixel = new Uint8Array(4);
     function readId(gl, x, y) {
         gl.readPixels(x, gl.drawingBufferHeight - y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-        return pixel[0] | pixel[1] << 8 | pixel[2] << 16;
+        return pixel[0] | pixel[1] << 8 | pixel[2] << 16 /*| pixel[3]<<24*/;
     }
     exports.readId = readId;
 });
