@@ -161,6 +161,16 @@ define(["require", "exports", './modules/gl', './modules/textures', './libs/math
         info['Y:'] = iy;
         props.refresh(info);
     });
+    gl.canvas.addEventListener("touchstart", function (e) {
+        var touch = e.touches[0];
+        var pos = control.unproject(touch.clientX, touch.clientY);
+        var x = pos[0] < 0 ? pos[0] - 1 : pos[0];
+        var y = pos[1] < 0 ? pos[1] - 1 : pos[1];
+        var ix = MU.int(x);
+        var iy = MU.int(y);
+        px = ix;
+        py = iy;
+    });
     document.onkeypress = function (e) {
         if (e.key == '`') {
             control.setPos(cw / 2, ch / 2);
