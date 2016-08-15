@@ -144,6 +144,23 @@ define(["require", "exports", './modules/gl', './modules/textures', './libs/math
         info['Y:'] = iy;
         props.refresh(info);
     };
+    gl.canvas.addEventListener("touchmove", function (e) {
+        var touch = e.touches[0];
+        var pos = control.unproject(touch.clientX, touch.clientY);
+        var x = pos[0] < 0 ? pos[0] - 1 : pos[0];
+        var y = pos[1] < 0 ? pos[1] - 1 : pos[1];
+        var ix = MU.int(x);
+        var iy = MU.int(y);
+        redrawOverlay(x, y);
+        overlay.reload(gl);
+        CANV.line(put, ix, iy, px, py);
+        tex.reload(gl);
+        px = ix;
+        py = iy;
+        info['X:'] = ix;
+        info['Y:'] = iy;
+        props.refresh(info);
+    });
     document.onkeypress = function (e) {
         if (e.key == '`') {
             control.setPos(cw / 2, ch / 2);
