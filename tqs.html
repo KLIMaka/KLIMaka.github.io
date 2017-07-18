@@ -1,0 +1,73 @@
+<html><head>
+
+<script type="text/javascript">  
+
+var pid = "1000148";
+//-----------------------------------------------------------
+// tid = your traffic source
+// l1-l6 = your own hierarchical parameters
+// pub_app = your app bundle if valid
+// pub_domain = your domain if valid
+var params_str = "&tid=traf1"+
+				 "&l1="+window.location.hostname+
+				 "&l2=level2"+                                                  
+				 "&pub_app=com.pub.app"+
+				 "&pub_domain="+window.location.hostname;  
+//-----------------------------------------------------------
+function HandleResultFromPM(fraud_score) {
+	if( fraud_score > 70 )
+	{
+		console.log("Fraud [fraud_score="+fraud_score+"]");
+	}
+	else if (fraud_score == -1)
+	{
+		console.log("Timeout [fraud_score="+fraud_score+"]");
+	}
+	else
+	{
+		console.log("OK [fraud_score="+fraud_score+"]");
+	}	
+}
+//-----------------------------------
+//-----------------------------------
+var resultHandled = false;
+//-----------------------------------
+function AdScoreCORS(res){
+    if (resultHandled){
+		return; 
+	}
+	resultHandled = true;
+	try{
+		HandleResultFromPM(res.score.black);
+	}
+	catch(e)
+	{
+		fire_err_pixel("ex",pid,params_str);
+		HandleResultFromPM(-1); 
+	}
+}
+//-----------------------------------
+setTimeout( function() {
+	if(!resultHandled){
+		resultHandled = true;
+		fire_err_pixel("t",pid,params_str);
+		HandleResultFromPM(-1);
+	}
+} , 1200 );
+//-----------------------------------
+function fire_err_pixel(type,pid,params_str){
+    var img = document.createElement('img');
+    img.src = "https://data.ad-score.com/score/img?s=" + type + "&r=" + Math.random() + "&pid=" + pid + "&" + params_str ;
+}
+//-----------------------------------
+var js = document.createElement('script');
+js.src = "https://data.ad-score.com/score/cors?s=1&callback=AdScoreCORS&cb=" + Math.random()+ "&pid=" + pid + "&" + params_str;
+var html = document.documentElement;
+html.insertBefore(js, html.firstChild);
+//-----------------------------------
+</script>
+
+</head>
+<body>
+</body>
+</html>
