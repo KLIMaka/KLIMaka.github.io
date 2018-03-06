@@ -1,69 +1,12 @@
 <html>
 	<body>BODY</body>
-		<script type="text/javascript" src="//trackmethod.com/v2/wd.js?pid=173&aid=1372"></script>
-<noscript>
-   <img height="1" width="1" alt="" style="position:absolute;" src="//trackmethod.com/v2/wdpxl.png?pid=173&aid=1372"/>
-</noscript>
 <script type="text/javascript">
-function getVisitorsInfo(callback) {
-    setTimeout(function wdTimerScoring() {
-        try {
-            if (wdCR1372.sendFirst === 1) {
-                callback(wDu1372.getVisitorsInfo());
-            } else {
-                setTimeout(wdTimerScoring, 100);
-            }
-        } catch (o) {
-            setTimeout(wdTimerScoring, 100);
-        }
-    }, 100);
+window['AdScoreCORS'] = function(res) {
+  alert(res['score']['rank']);
 }
-// These functions are used to determine your actions.
-// ================================================================================
-// Use info object:
-//      clientObject.scoring - WD scoring (0-999)
-//      clientObject.ip - IP Address (4.2.2.1, 8.8.8.8, etc.)
-//      clientObject.country - Country code (US, CA, DE, etc.)
-//      clientObject.city - City name (London, Berlin, etc.)
-//      clientObject.TrackID - tracking ID in WD system
-//      clientObject.subTrackID - tracking sub ID in WD system
-//      clientObject.referrer - Referrer domain
-//      clientObject.screenWidth - The total width of the user's screen, in pixels
-//      clientObject.screenHeight - The total height of the user's screen, in pixels
-//      clientObject.windowWidth - The width of the displaying page in the browser window (could be 0 for mobile devices)
-//      clientObject.windowHeight - The height of the displaying page in the browser window (could be 0 for mobile devices)
-//      clientObject.colorDepth - The bit depth of the color palette for displaying images (in bits per pixel)
-//      clientObject.OS - The name of the Operation System (Windows, Android, IOS, Linux, etc.)
-//      clientObject.OSVersion - The version of the browser (10.0, 4.4, etc.)
-//      clientObject.device - Device type (phone, tablet, computer)
-//      clientObject.browser - The name of the browser (Firefox, Chrome, Safari, Opera, IE, IEMobile, etc.)
-//      clientObject.browserVersion - The version of the browser (11.0, 41.0, 48.0.2564.116, etc.)
-//      clientObject.connectionType - Connection-Type (Cellular, Corporate, Cable/DSL, Dialup, etc.)
-//      clientObject.ISP - Internet Service Provider Name (Comcast Business Communications, Verizon Internet Services, etc.)
-//      clientObject.isDataCenter - IP-addresses belongs to datacenter, hosting or cloud service networks etc. (0/1)
-//      clientObject.TOS - Time On Site in minutes
-//      clientObject.PV - Page Views
-//      clientObject.isImage - Image loading support (0/1)
-//      clientObject.isJSON - JSON support (0/1)
-//      clientObject.isFlash - Adobe Flash support (0/1)
-//      clientObject.FlashVersion - Adobe Flash Version (11.8, 11.9, 19, 20, etc.)
-//      clientObject.isHTML5 - HTML5 support (0/1)
-//      clientObject.isActiveX - ActiveX support (0/1)
-//      clientObject.isJAVA - SUN Java support (0/1)
-//      clientObject.isMobile - Mobile Device (0/1)
-//      clientObject.isTouch - Touch Device (0/1)
-//      clientObject.isCookie - Cookie enabled (0/1)
-//      clientObject.JavaScriptVersion - JavaScript Version (1.0, 1.1, 1.5, 1.6, etc.)
-//      clientObject.isFrame - Impression in iFrame (0/1)
-//      clientObject.isAdBlock - AdBlock software detected (0/1)
-//      clientObject.isHeavyCPU - Heavy CPU detected (0/1)
-// ================================================================================
-getVisitorsInfo(function(clientObject) {
-   if (clientObject.scoring < 30) {
-       alert('Site Scoring: ' + clientObject.scoring + ' . Human!');
-   } else {
-       alert('Site Scoring: ' + clientObject.scoring + ' . Non-Human!');
-   }
-});
+var script = document.createElement("script");
+script.type = "text/javascript";
+script.src = 'https://data.ad-score.com/score/cors?s=1&callback=AdScoreCORS&pid={account_id}';
+document.getElementsByTagName("head")[0].appendChild(script);
 </script>
 </html>
