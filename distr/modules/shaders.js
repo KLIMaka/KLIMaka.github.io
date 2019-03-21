@@ -1,70 +1,75 @@
-define(["require", "exports", '../libs/set', '../libs/getter', '../libs/asyncbarrier'], function (require, exports, Set, getter, AB) {
+define(["require", "exports", "../libs/set", "../libs/getter", "../libs/asyncbarrier"], function (require, exports, Set, getter, AB) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     var defaultFSH = 'void main(){gl_FragColor = vec4(0.0);}';
     var defaultVSH = 'void main(){gl_Position = vec4(0.0);}';
     var defaultProgram = null;
-    var Shader = (function () {
-        function Shader(prog) {
+    class Shader {
+        constructor(prog, initCallback = null) {
             this.uniforms = {};
             this.attribs = {};
             this.uniformNames = [];
             this.attributeNames = [];
             this.samplers = [];
             this.program = prog;
+            this.initCallback = initCallback;
         }
-        Shader.prototype.init = function (gl, prog, params) {
+        init(gl, prog, params) {
             this.program = prog;
             this.uniformNames = params.uniforms.values();
             this.attributeNames = params.attributes.values();
             this.samplers = params.samplers.values();
             this.initUniformLocations(gl);
             this.initAttributeLocations(gl);
-        };
-        Shader.prototype.initUniformLocations = function (gl) {
+            if (this.initCallback != null)
+                this.initCallback(this);
+        }
+        initUniformLocations(gl) {
             for (var i in this.uniformNames) {
                 var uniform = this.uniformNames[i];
                 this.uniforms[uniform] = gl.getUniformLocation(this.program, uniform);
             }
-        };
-        Shader.prototype.initAttributeLocations = function (gl) {
+        }
+        initAttributeLocations(gl) {
             for (var i in this.attributeNames) {
                 var attrib = this.attributeNames[i];
                 this.attribs[attrib] = gl.getAttribLocation(this.program, attrib);
             }
-        };
-        Shader.prototype.getUniformLocation = function (name, gl) {
+        }
+        getUniformLocation(name, gl) {
             return this.uniforms[name];
-        };
-        Shader.prototype.getAttributeLocation = function (name, gl) {
+        }
+        getAttributeLocation(name, gl) {
             return this.attribs[name];
-        };
-        Shader.prototype.getProgram = function () {
+        }
+        getProgram() {
             return this.program;
-        };
-        Shader.prototype.getUniforms = function () {
+        }
+        getUniforms() {
             return this.uniformNames;
-        };
-        Shader.prototype.getAttributes = function () {
+        }
+        getAttributes() {
             return this.attributeNames;
-        };
-        Shader.prototype.getSamplers = function () {
+        }
+        getSamplers() {
             return this.samplers;
-        };
-        return Shader;
-    })();
+        }
+    }
     exports.Shader = Shader;
     var cache = {};
-    function createShader(gl, name) {
-        var shader = cache[name];
-        if (shader != undefined)
-            return shader;
+    function createShader(gl, name, defines = [], initCallback = null) {
+        // var shader = cache[name];
+        // if (shader != undefined)
+        //   return shader;
         if (defaultProgram == null) {
             defaultProgram = compileProgram(gl, defaultVSH, defaultFSH);
         }
         var shader = new Shader(defaultProgram);
-        var barrier = AB.create(function (res) { initShader(gl, shader, res.vsh, res.fsh); });
+        var barrier = AB.create();
+        var deftext = prepareDefines(defines);
         getter.preloadString(name + '.vsh', barrier.callback('vsh'));
         getter.preloadString(name + '.fsh', barrier.callback('fsh'));
-        barrier.wait();
+        barrier.wait((res) => { initShader(gl, shader, deftext + res.vsh, deftext + res.fsh); });
         cache[name] = shader;
         return shader;
     }
@@ -76,14 +81,21 @@ define(["require", "exports", '../libs/set', '../libs/getter', '../libs/asyncbar
     }
     exports.createShaderFromSrc = createShaderFromSrc;
     function initShader(gl, shader, vsh, fsh) {
-        var barrier = AB.create(function (res) {
+        var barrier = AB.create();
+        preprocess(vsh, barrier.callback('vsh'));
+        preprocess(fsh, barrier.callback('fsh'));
+        barrier.wait((res) => {
             var program = compileProgram(gl, res.vsh, res.fsh);
             var params = processShaders(res.vsh, res.fsh);
             shader.init(gl, program, params);
         });
-        preprocess(vsh, barrier.callback('vsh'));
-        preprocess(fsh, barrier.callback('fsh'));
-        barrier.wait();
+    }
+    function prepareDefines(defines) {
+        var result = '';
+        for (var i = 0; i < defines.length; i++) {
+            result += "#define " + defines[i] + ";\n";
+        }
+        return result;
     }
     function compileProgram(gl, vsh, fsh) {
         var program = gl.createProgram();
@@ -100,7 +112,7 @@ define(["require", "exports", '../libs/set', '../libs/getter', '../libs/asyncbar
         gl.shaderSource(shader, source);
         gl.compileShader(shader);
         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            throw 'compile error: ' + gl.getShaderInfoLog(shader);
+            throw 'compile error: ' + gl.getShaderInfoLog(shader) + '\nin source:\n' + source;
         }
         return shader;
     }
@@ -137,14 +149,7 @@ define(["require", "exports", '../libs/set', '../libs/getter', '../libs/asyncbar
     }
     function preprocess(shader, cb) {
         var lines = shader.split("\n");
-        var barrier = AB.create(function (incs) {
-            var res = [];
-            for (var i = 0; i < lines.length; i++) {
-                var inc = incs[i + ''];
-                res.push(inc == undefined ? lines[i] : inc);
-            }
-            cb(res.join("\n"));
-        });
+        var barrier = AB.create();
         for (var i = 0; i < lines.length; i++) {
             var l = lines[i];
             var m = l.match(/^#include +"([^"]+)"/);
@@ -152,6 +157,13 @@ define(["require", "exports", '../libs/set', '../libs/getter', '../libs/asyncbar
                 getter.preloadString(m[1], barrier.callback(i + ''));
             }
         }
-        barrier.wait();
+        barrier.wait((incs) => {
+            var res = [];
+            for (var i = 0; i < lines.length; i++) {
+                var inc = incs[i + ''];
+                res.push(inc == undefined ? lines[i] : inc);
+            }
+            cb(res.join("\n"));
+        });
     }
 });

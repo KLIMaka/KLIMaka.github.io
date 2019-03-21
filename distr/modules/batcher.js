@@ -1,4 +1,6 @@
 define(["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     function clear(gl, shader, data) {
         gl.clearColor(data[0], data[1], data[2], data[3]);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -41,13 +43,13 @@ define(["require", "exports"], function (require, exports) {
     }
     exports.drawCall = drawCall;
     exports.setters = {
-        mat4: function (gl, loc, val) { return gl.uniformMatrix4fv(loc, false, val); },
-        int2: function (gl, loc, val) { return gl.uniform2iv(loc, val); },
-        vec2: function (gl, loc, val) { return gl.uniform2fv(loc, val); },
-        vec3: function (gl, loc, val) { return gl.uniform3fv(loc, val); },
-        vec4: function (gl, loc, val) { return gl.uniform4fv(loc, val); },
-        int1: function (gl, loc, val) { return gl.uniform1i(loc, val); },
-        flt1: function (gl, loc, val) { return gl.uniform1f(loc, val); }
+        mat4: (gl, loc, val) => gl.uniformMatrix4fv(loc, false, val),
+        int2: (gl, loc, val) => gl.uniform2iv(loc, val),
+        vec2: (gl, loc, val) => gl.uniform2fv(loc, val),
+        vec3: (gl, loc, val) => gl.uniform3fv(loc, val),
+        vec4: (gl, loc, val) => gl.uniform4fv(loc, val),
+        int1: (gl, loc, val) => gl.uniform1i(loc, val),
+        flt1: (gl, loc, val) => gl.uniform1f(loc, val)
     };
     function uniforms(gl, shader, data) {
         for (var i = 0; i < data.length; i += 3) {
@@ -57,7 +59,7 @@ define(["require", "exports"], function (require, exports) {
             var loc = shader.getUniformLocation(name, gl);
             if (!loc)
                 continue;
-            setter(gl, loc, val);
+            setter(gl, loc, val instanceof Function ? val() : val);
         }
         return shader;
     }
@@ -77,7 +79,7 @@ define(["require", "exports"], function (require, exports) {
         for (var i = 0; i < cmds.length; i += 2) {
             var f = cmds[i];
             var args = cmds[i + 1];
-            shader = f(gl, shader, args);
+            shader = f(gl, shader, args instanceof Function ? args() : args);
         }
     }
     exports.exec = exec;

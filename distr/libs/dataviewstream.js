@@ -1,57 +1,59 @@
-define(["require", "exports"], function (require, exports) {
-    var DataViewStream = (function () {
-        function DataViewStream(buf, isLE) {
+define(["require", "exports", "../modules/bitreader"], function (require, exports, B) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class DataViewStream {
+        constructor(buf, isLE) {
             this.view = new DataView(buf);
             this.offset = 0;
             this.littleEndian = isLE;
         }
-        DataViewStream.prototype.buffer = function () {
+        buffer() {
             return this.view.buffer;
-        };
-        DataViewStream.prototype.eoi = function () {
+        }
+        eoi() {
             return this.offset >= this.view.byteLength;
-        };
-        DataViewStream.prototype.skip = function (n) {
+        }
+        skip(n) {
             this.offset += n;
-        };
-        DataViewStream.prototype.setOffset = function (off) {
+        }
+        setOffset(off) {
             this.offset = off;
-        };
-        DataViewStream.prototype.mark = function () {
+        }
+        mark() {
             return this.offset;
-        };
-        DataViewStream.prototype.readByte = function () {
+        }
+        readByte() {
             return this.view.getInt8(this.offset++);
-        };
-        DataViewStream.prototype.readUByte = function () {
+        }
+        readUByte() {
             return this.view.getUint8(this.offset++);
-        };
-        DataViewStream.prototype.readShort = function () {
+        }
+        readShort() {
             var ret = this.view.getInt16(this.offset, this.littleEndian);
             this.offset += 2;
             return ret;
-        };
-        DataViewStream.prototype.readUShort = function () {
+        }
+        readUShort() {
             var ret = this.view.getUint16(this.offset, this.littleEndian);
             this.offset += 2;
             return ret;
-        };
-        DataViewStream.prototype.readInt = function () {
+        }
+        readInt() {
             var ret = this.view.getInt32(this.offset, this.littleEndian);
             this.offset += 4;
             return ret;
-        };
-        DataViewStream.prototype.readUInt = function () {
+        }
+        readUInt() {
             var ret = this.view.getUint32(this.offset, this.littleEndian);
             this.offset += 4;
             return ret;
-        };
-        DataViewStream.prototype.readFloat = function () {
+        }
+        readFloat() {
             var ret = this.view.getFloat32(this.offset, this.littleEndian);
             this.offset += 4;
             return ret;
-        };
-        DataViewStream.prototype.readByteString = function (len) {
+        }
+        readByteString(len) {
             var str = new Array(len);
             for (var i = 0; i < len; i++) {
                 var c = this.readByte();
@@ -62,64 +64,79 @@ define(["require", "exports"], function (require, exports) {
                 str[i] = String.fromCharCode(c);
             }
             return str.join('');
-        };
-        DataViewStream.prototype.subView = function () {
+        }
+        subView() {
             var ret = new DataViewStream(this.view.buffer, this.littleEndian);
             ret.setOffset(this.offset);
             return ret;
-        };
-        DataViewStream.prototype.array = function (bytes) {
-            return new DataView(this.view.buffer, this.offset, bytes);
-        };
-        return DataViewStream;
-    })();
+        }
+        array(bytes) {
+            var slice = this.view.buffer.slice(this.offset, this.offset + bytes);
+            this.offset += bytes;
+            return slice;
+        }
+    }
     exports.DataViewStream = DataViewStream;
-    var BasicReader = (function () {
-        function BasicReader(f, size, arr) {
+    class BasicReader {
+        constructor(f, size, arr) {
             this.f = f;
             this.size = size;
             this.arr = arr;
         }
-        BasicReader.prototype.read = function (s) { return this.f(s); };
-        BasicReader.prototype.sizeof = function () { return this.size; };
-        BasicReader.prototype.arrType = function () { return this.arr; };
-        return BasicReader;
-    })();
+        read(s) { return this.f(s); }
+        sizeof() { return this.size; }
+        arrType() { return this.arr; }
+    }
     exports.BasicReader = BasicReader;
-    function reader(rf, size, arr) {
-        if (arr === void 0) { arr = null; }
+    function reader(rf, size, arr = null) {
         return new BasicReader(rf, size, arr);
     }
     exports.reader = reader;
-    exports.byte = reader(function (s) { return s.readByte(); }, 1, Int8Array);
-    exports.ubyte = reader(function (s) { return s.readUByte(); }, 1, Uint8Array);
-    exports.short = reader(function (s) { return s.readShort(); }, 2, Int16Array);
-    exports.ushort = reader(function (s) { return s.readUShort(); }, 2, Uint16Array);
-    exports.int = reader(function (s) { return s.readInt(); }, 4, Int32Array);
-    exports.uint = reader(function (s) { return s.readUInt(); }, 4, Uint32Array);
-    exports.float = reader(function (s) { return s.readFloat(); }, 4, Float32Array);
-    exports.string = function (len) { return reader(function (s) { return s.readByteString(len); }, len); };
-    exports.array_ = function (s, type, len) {
-        var arrayType = type.arrType();
-        if (arrayType == null) {
-            var arr = [];
-            for (var i = 0; i < len; i++)
-                arr[i] = type.read(s);
-            return arr;
-        }
-        var arr = new Array(len);
+    exports.byte = reader((s) => s.readByte(), 1, Int8Array);
+    exports.ubyte = reader((s) => s.readUByte(), 1, Uint8Array);
+    exports.short = reader((s) => s.readShort(), 2, Int16Array);
+    exports.ushort = reader((s) => s.readUShort(), 2, Uint16Array);
+    exports.int = reader((s) => s.readInt(), 4, Int32Array);
+    exports.uint = reader((s) => s.readUInt(), 4, Uint32Array);
+    exports.float = reader((s) => s.readFloat(), 4, Float32Array);
+    exports.string = (len) => { return reader((s) => s.readByteString(len), len); };
+    var array_ = (s, type, len) => {
+        var arr = new Array();
         for (var i = 0; i < len; i++)
             arr[i] = type.read(s);
-        return new arrayType(arr);
+        return arr;
     };
-    exports.array = function (type, len) { return reader(function (s) { return exports.array_(s, type, len); }, type.sizeof() * len); };
-    exports.struct_ = function (s, fields, type) {
+    exports.array = (type, len) => { return reader((s) => array_(s, type, len), type.sizeof() * len); };
+    var atomic_array_ = (s, type, len) => {
+        var arrayType = type.arrType();
+        if (arrayType == null)
+            throw new Error('type is not atomic');
+        var array = s.array(len * type.sizeof());
+        return new arrayType(array, 0, len * type.sizeof());
+    };
+    exports.atomic_array = (type, len) => { return reader((s) => atomic_array_(s, type, len), type.sizeof() * len); };
+    var bit_field_ = (s, fields, reverse) => {
+        var br = new B.BitReader(s);
+        return fields.map((val) => br.readBits(val, reverse));
+    };
+    exports.bit_field = (fields, reverse) => { return reader((s) => bit_field_(s, fields, reverse), (fields.reduce((l, r) => l + r, 0) / 8) | 0); };
+    var struct_ = (s, fields, type) => {
         var struct = new type();
         for (var i = 0; i < fields.length; i++) {
-            var field = fields[i];
-            struct[field[0]] = field[1].read(s);
+            var [name, reader] = fields[i];
+            var parts = name.split(',');
+            if (parts.length == 1) {
+                struct[name] = reader.read(s);
+            }
+            else {
+                var values = reader.read(s);
+                for (var r = 0; r < parts.length; r++) {
+                    var pname = parts[r];
+                    struct[pname] = values[r];
+                }
+            }
         }
         return struct;
     };
-    exports.struct = function (type, fields) { return reader(function (s) { return exports.struct_(s, fields, type); }, fields.reduce(function (l, r) { return l + r[1].sizeof(); }, 0)); };
+    exports.struct = (type, fields) => { return reader((s) => struct_(s, fields, type), fields.reduce((l, r) => l + r[1].sizeof(), 0)); };
 });

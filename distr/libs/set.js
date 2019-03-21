@@ -1,32 +1,31 @@
 define(["require", "exports"], function (require, exports) {
-    var Set = (function () {
-        function Set(array) {
-            if (array === void 0) { array = []; }
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class Set {
+        constructor(array = []) {
             this.table = {};
             for (var i in array)
                 this.add(array[i]);
         }
-        Set.prototype.add = function (val) {
+        add(val) {
             this.table[val.toString()] = 1;
-        };
-        Set.prototype.remove = function (val) {
+        }
+        remove(val) {
             this.table[val.toString()] = 0;
-        };
-        Set.prototype.has = function (val) {
+        }
+        has(val) {
             return this.table[val.toString()] == 1;
-        };
-        Set.prototype.values = function () {
+        }
+        values() {
             var arr = [];
             for (var i in this.table)
                 if (this.table[i] == 1)
                     arr.push(i);
             return arr;
-        };
-        return Set;
-    })();
+        }
+    }
     exports.Set = Set;
-    function create(array) {
-        if (array === void 0) { array = []; }
+    function create(array = []) {
         return new Set(array);
     }
     exports.create = create;

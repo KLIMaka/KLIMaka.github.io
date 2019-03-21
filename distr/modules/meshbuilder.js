@@ -1,11 +1,41 @@
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
 define(["require", "exports"], function (require, exports) {
-    var DynamicVertexBufferBuilder = (function () {
-        function DynamicVertexBufferBuilder(maxSize, arrayType, type, spacing, normalized) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class DynamicIndexBufferBuilder {
+        constructor(maxSize, arrayType, type) {
+            this.maxSize = maxSize;
+            this.arrayType = arrayType;
+            this.type = type;
+            this.lastIdx = 0;
+            this.buffer = new arrayType(maxSize);
+        }
+        push(data) {
+            if (this.lastIdx >= this.maxSize)
+                throw new Error('MaxSize limit exceeded');
+            for (var i = 0; i < data.length; i++)
+                this.buffer[this.lastIdx + i] = data[i];
+            this.lastIdx += data.length;
+        }
+        tell() {
+            return this.lastIdx;
+        }
+        goto(off) {
+            this.lastIdx = off;
+        }
+        refresh(gl) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufIdx);
+            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, this.buffer);
+        }
+        build(gl) {
+            this.bufIdx = (this.bufIdx == null) ? gl.createBuffer() : this.bufIdx;
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufIdx);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.buffer, gl.STREAM_DRAW);
+            return new IndexBufferImpl(this.bufIdx, this.type);
+        }
+    }
+    exports.DynamicIndexBufferBuilder = DynamicIndexBufferBuilder;
+    class DynamicVertexBufferBuilder {
+        constructor(maxSize, arrayType, type, spacing, normalized) {
             this.maxSize = maxSize;
             this.arrayType = arrayType;
             this.type = type;
@@ -14,39 +44,34 @@ define(["require", "exports"], function (require, exports) {
             this.lastIdx = 0;
             this.buffer = new arrayType(maxSize * spacing);
         }
-        DynamicVertexBufferBuilder.prototype.push = function (data) {
+        push(data) {
             if (this.lastIdx >= this.maxSize)
                 throw new Error('MaxSize limit exceeded');
             var off = this.lastIdx * this.spacing;
             for (var i = 0; i < this.spacing; i++)
                 this.buffer[off + i] = data[i];
             this.lastIdx++;
-        };
-        DynamicVertexBufferBuilder.prototype.tell = function () {
+        }
+        tell() {
             return this.lastIdx;
-        };
-        DynamicVertexBufferBuilder.prototype.goto = function (off) {
+        }
+        goto(off) {
             this.lastIdx = off;
-        };
-        DynamicVertexBufferBuilder.prototype.refresh = function (gl) {
+        }
+        refresh(gl) {
             gl.bindBuffer(gl.ARRAY_BUFFER, this.bufIdx);
             gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.buffer);
-        };
-        DynamicVertexBufferBuilder.prototype.build = function (gl) {
+        }
+        build(gl) {
             this.bufIdx = (this.bufIdx == null) ? gl.createBuffer() : this.bufIdx;
             gl.bindBuffer(gl.ARRAY_BUFFER, this.bufIdx);
             gl.bufferData(gl.ARRAY_BUFFER, this.buffer, gl.STREAM_DRAW);
             return new VertexBufferImpl(this.bufIdx, this.type, this.spacing, this.normalized);
-        };
-        return DynamicVertexBufferBuilder;
-    })();
+        }
+    }
     exports.DynamicVertexBufferBuilder = DynamicVertexBufferBuilder;
-    var VertexBufferImpl = (function () {
-        function VertexBufferImpl(buffer, type, spacing, normalized, stride, offset) {
-            if (spacing === void 0) { spacing = 3; }
-            if (normalized === void 0) { normalized = false; }
-            if (stride === void 0) { stride = 0; }
-            if (offset === void 0) { offset = 0; }
+    class VertexBufferImpl {
+        constructor(buffer, type, spacing = 3, normalized = false, stride = 0, offset = 0) {
             this.buffer = buffer;
             this.type = type;
             this.spacing = spacing;
@@ -54,30 +79,28 @@ define(["require", "exports"], function (require, exports) {
             this.stride = stride;
             this.offset = offset;
         }
-        VertexBufferImpl.prototype.getBuffer = function () {
+        getBuffer() {
             return this.buffer;
-        };
-        VertexBufferImpl.prototype.getType = function () {
+        }
+        getType() {
             return this.type;
-        };
-        VertexBufferImpl.prototype.getSpacing = function () {
+        }
+        getSpacing() {
             return this.spacing;
-        };
-        VertexBufferImpl.prototype.getNormalized = function () {
+        }
+        getNormalized() {
             return this.normalized;
-        };
-        VertexBufferImpl.prototype.getStride = function () {
+        }
+        getStride() {
             return this.stride;
-        };
-        VertexBufferImpl.prototype.getOffset = function () {
+        }
+        getOffset() {
             return this.offset;
-        };
-        return VertexBufferImpl;
-    })();
+        }
+    }
     exports.VertexBufferImpl = VertexBufferImpl;
-    var Mesh = (function () {
-        function Mesh(material, vtxBuffers, idx, mode, length, offset) {
-            if (offset === void 0) { offset = 0; }
+    class Mesh {
+        constructor(material, vtxBuffers, idx, mode, length, offset = 0) {
             this.material = material;
             this.vtxBuffers = vtxBuffers;
             this.idx = idx;
@@ -85,38 +108,37 @@ define(["require", "exports"], function (require, exports) {
             this.length = length;
             this.offset = offset;
         }
-        Mesh.prototype.getMaterial = function () {
+        getMaterial() {
             return this.material;
-        };
-        Mesh.prototype.getMode = function () {
+        }
+        getMode() {
             return this.mode;
-        };
-        Mesh.prototype.getVertexBuffer = function (attribute) {
+        }
+        getVertexBuffer(attribute) {
             return this.vtxBuffers[attribute];
-        };
-        Mesh.prototype.getAttributes = function () {
+        }
+        getAttributes() {
             return Object.keys(this.vtxBuffers);
-        };
-        Mesh.prototype.getIndexBuffer = function () {
+        }
+        getIndexBuffer() {
             return this.idx;
-        };
-        Mesh.prototype.getVertexBuffers = function () {
+        }
+        getVertexBuffers() {
             return this.vtxBuffers;
-        };
-        Mesh.prototype.getLength = function () {
+        }
+        getLength() {
             return this.length;
-        };
-        Mesh.prototype.getOffset = function () {
+        }
+        getOffset() {
             return this.offset;
-        };
-        return Mesh;
-    })();
+        }
+    }
     exports.Mesh = Mesh;
     exports.NONE = 0;
     exports.TRIANGLES = 3;
     exports.QUADS = 4;
-    var IndexBufferBuilder = (function () {
-        function IndexBufferBuilder(arrayType, type) {
+    class IndexBufferBuilder {
+        constructor(arrayType, type) {
             this.arrayType = arrayType;
             this.type = type;
             this.buffer = [];
@@ -124,13 +146,13 @@ define(["require", "exports"], function (require, exports) {
             this.mode = exports.NONE;
             this.vtxCounter = 0;
         }
-        IndexBufferBuilder.prototype.setMode = function (mode) {
+        setMode(mode) {
             if (this.vtxCounter != 0)
                 throw new Error('Incomplete primitive!');
             this.mode = mode;
             this.vtxCounter = 0;
-        };
-        IndexBufferBuilder.prototype.vtx = function () {
+        }
+        vtx() {
             this.vtxCounter++;
             if (this.mode == exports.TRIANGLES && this.vtxCounter % exports.TRIANGLES == 0) {
                 this.pushTriangle();
@@ -140,69 +162,67 @@ define(["require", "exports"], function (require, exports) {
                 this.pushQuad();
                 this.vtxCounter = 0;
             }
-        };
-        IndexBufferBuilder.prototype.pushTriangle = function () {
+        }
+        pushTriangle() {
             var idx = this.idx;
             this.buffer.push(idx, idx + 2, idx + 1);
             this.idx += 3;
-        };
-        IndexBufferBuilder.prototype.pushQuad = function () {
+        }
+        pushQuad() {
             var idx = this.idx;
             this.buffer.push(idx, idx + 2, idx + 1, idx, idx + 3, idx + 2);
             this.idx += 4;
-        };
-        IndexBufferBuilder.prototype.length = function () {
+        }
+        length() {
             return this.buffer.length;
-        };
-        IndexBufferBuilder.prototype.buf = function () {
+        }
+        buf() {
             return this.buffer;
-        };
-        IndexBufferBuilder.prototype.build = function (gl) {
+        }
+        build(gl) {
             this.bufIdx = (this.bufIdx == null) ? gl.createBuffer() : this.bufIdx;
             var data = new this.arrayType(this.buffer);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufIdx);
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
             return new IndexBufferImpl(this.bufIdx, this.type);
-        };
-        return IndexBufferBuilder;
-    })();
+        }
+    }
     exports.IndexBufferBuilder = IndexBufferBuilder;
-    var IndexBufferImpl = (function () {
-        function IndexBufferImpl(buffer, type) {
+    class IndexBufferImpl {
+        getBuffer() {
+            return this.buffer;
+        }
+        getType() {
+            return this.type;
+        }
+        constructor(buffer, type) {
             this.buffer = buffer;
             this.type = type;
         }
-        IndexBufferImpl.prototype.getBuffer = function () {
-            return this.buffer;
-        };
-        IndexBufferImpl.prototype.getType = function () {
-            return this.type;
-        };
-        return IndexBufferImpl;
-    })();
-    var MeshBuilder = (function () {
-        function MeshBuilder(buffers, idx) {
+    }
+    class MeshBuilder {
+        constructor(buffers, idx) {
             this.buffers = buffers;
             this.idx = idx;
             this.attrs = {};
         }
-        MeshBuilder.prototype.offset = function () {
+        offset() {
             return this.idx.length();
-        };
-        MeshBuilder.prototype.goto = function (mark) {
+        }
+        goto(mark) {
             for (var attr in this.buffers) {
                 this.buffers[attr].goto(mark[attr]);
             }
-        };
-        MeshBuilder.prototype.start = function (mode) {
+        }
+        start(mode) {
             this.idx.setMode(mode);
             return this;
-        };
-        MeshBuilder.prototype.attr = function (attr, data) {
+        }
+        attr(attr, data) {
             this.attrs[attr] = data;
             return this;
-        };
-        MeshBuilder.prototype.vtx = function (vtxAttr, data) {
+        }
+        vtx(vtxAttr, data) {
             this.attrs[vtxAttr] = data;
             for (var attr in this.attrs) {
                 //noinspection JSUnfilteredForInLoop
@@ -210,15 +230,15 @@ define(["require", "exports"], function (require, exports) {
             }
             this.idx.vtx();
             return this;
-        };
-        MeshBuilder.prototype.end = function () {
+        }
+        end() {
             this.idx.setMode(exports.NONE);
             this.attrs = {};
-        };
-        MeshBuilder.prototype.idxbuf = function () {
+        }
+        idxbuf() {
             return this.idx;
-        };
-        MeshBuilder.prototype.build = function (gl, material) {
+        }
+        build(gl, material) {
             var bufs = {};
             for (var bufName in this.buffers) {
                 //noinspection JSUnfilteredForInLoop
@@ -226,41 +246,31 @@ define(["require", "exports"], function (require, exports) {
             }
             var idx = this.idx.build(gl);
             return new Mesh(material, bufs, idx, gl.TRIANGLES, this.idx.length());
-        };
-        return MeshBuilder;
-    })();
+        }
+    }
     exports.MeshBuilder = MeshBuilder;
-    var MeshBuilderConstructor = (function () {
-        function MeshBuilderConstructor(size) {
-            if (size === void 0) { size = 64 * 1024; }
+    class MeshBuilderConstructor {
+        constructor(size = 64 * 1024) {
             this.buffers = {};
             this.size = size;
         }
-        MeshBuilderConstructor.prototype.buffer = function (name, arrayType, type, spacing, normalized) {
-            if (normalized === void 0) { normalized = false; }
+        buffer(name, arrayType, type, spacing, normalized = false) {
             this.buffers[name] = new DynamicVertexBufferBuilder(this.size, arrayType, type, spacing, normalized);
             return this;
-        };
-        MeshBuilderConstructor.prototype.index = function (idxArrayType, idxType) {
+        }
+        index(idxArrayType, idxType) {
             this.idx = new IndexBufferBuilder(idxArrayType, idxType);
             return this;
-        };
-        MeshBuilderConstructor.prototype.build = function () {
+        }
+        build() {
             return new MeshBuilder(this.buffers, this.idx);
-        };
-        return MeshBuilderConstructor;
-    })();
-    exports.MeshBuilderConstructor = MeshBuilderConstructor;
-    function getMax(arr) {
-        var max = arr[0];
-        for (var i = 1; i < arr.length; i++)
-            max = Math.max(max, arr[i]);
-        return max;
+        }
     }
+    exports.MeshBuilderConstructor = MeshBuilderConstructor;
     function genIndexBuffer(gl, count, pattern) {
         var bufIdx = gl.createBuffer();
         var len = pattern.length;
-        var size = getMax(pattern) + 1;
+        var size = Math.max.apply(null, pattern) + 1;
         var data = new Uint16Array(count * len);
         for (var i = 0; i < count; i++) {
             var off = i * len;
@@ -270,7 +280,7 @@ define(["require", "exports"], function (require, exports) {
             }
         }
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufIdx);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.buffer, gl.STATIC_DRAW);
         return new IndexBufferImpl(bufIdx, gl.UNSIGNED_SHORT);
     }
     exports.genIndexBuffer = genIndexBuffer;
@@ -316,29 +326,29 @@ define(["require", "exports"], function (require, exports) {
         }
     }
     exports.ArrayType2GlType = ArrayType2GlType;
-    var VertexBufferDynamic = (function (_super) {
-        __extends(VertexBufferDynamic, _super);
-        function VertexBufferDynamic(gl, type, data, spacing, usage, normalized) {
-            if (usage === void 0) { usage = WebGLRenderingContext.STREAM_DRAW; }
-            if (normalized === void 0) { normalized = false; }
-            _super.call(this, gl.createBuffer(), type, spacing, normalized, 0, 0);
+    class VertexBufferDynamic extends VertexBufferImpl {
+        constructor(gl, type, data, spacing, usage = WebGLRenderingContext.STREAM_DRAW, normalized = false) {
+            super(gl.createBuffer(), type, spacing, normalized, 0, 0);
             this.data = data;
             gl.bindBuffer(gl.ARRAY_BUFFER, this.getBuffer());
             gl.bufferData(gl.ARRAY_BUFFER, this.data, usage);
         }
-        VertexBufferDynamic.prototype.getData = function () {
+        getData() {
             return this.data;
-        };
-        VertexBufferDynamic.prototype.update = function (gl) {
+        }
+        update(gl) {
             gl.bindBuffer(gl.ARRAY_BUFFER, this.getBuffer());
             gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.data);
-        };
-        return VertexBufferDynamic;
-    })(VertexBufferImpl);
+        }
+        updateRegion(gl, offset, length) {
+            var sizeof = this.data.BYTES_PER_ELEMENT * this.getSpacing();
+            var region = new Uint8Array(this.data.buffer, offset * sizeof, length * sizeof);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.getBuffer());
+            gl.bufferSubData(gl.ARRAY_BUFFER, offset * sizeof, region);
+        }
+    }
     exports.VertexBufferDynamic = VertexBufferDynamic;
-    function createVertexBuffer(gl, type, data, spacing, usage, norm) {
-        if (usage === void 0) { usage = WebGLRenderingContext.STREAM_DRAW; }
-        if (norm === void 0) { norm = false; }
+    function createVertexBuffer(gl, type, data, spacing, usage = WebGLRenderingContext.STREAM_DRAW, norm = false) {
         var arrtype = GlType2ArrayType(type);
         if (typeof data == 'number') {
             data = new arrtype(data * spacing);
@@ -350,10 +360,46 @@ define(["require", "exports"], function (require, exports) {
         return new VertexBufferDynamic(gl, type, data, spacing, usage, norm);
     }
     exports.createVertexBuffer = createVertexBuffer;
-    function wrap(gl, data, spacing, usage, norm) {
-        if (usage === void 0) { usage = WebGLRenderingContext.STREAM_DRAW; }
-        if (norm === void 0) { norm = false; }
+    function wrap(gl, data, spacing, usage = WebGLRenderingContext.STREAM_DRAW, norm = false) {
         return new VertexBufferDynamic(gl, ArrayType2GlType(data.constructor), data, spacing, usage, norm);
     }
     exports.wrap = wrap;
+    class DynamicIndexBuffer extends IndexBufferImpl {
+        constructor(gl, data, type = WebGLRenderingContext.UNSIGNED_SHORT, usage = WebGLRenderingContext.STREAM_DRAW) {
+            super(gl.createBuffer(), type);
+            this.data = data;
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.getBuffer());
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.data, usage);
+        }
+        update(gl, length = 0) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.getBuffer());
+            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, this.data);
+        }
+        updateRegion(gl, offset, length) {
+            var sizeof = 2;
+            var region = new Uint8Array(this.data.buffer, offset * sizeof, length * sizeof);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.getBuffer());
+            gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, offset * sizeof, region);
+        }
+        getData() {
+            return this.data;
+        }
+    }
+    exports.DynamicIndexBuffer = DynamicIndexBuffer;
+    function createIndexBuffer(gl, type, data, usage = WebGLRenderingContext.STREAM_DRAW) {
+        var arrtype = GlType2ArrayType(type);
+        if (typeof data == 'number') {
+            data = new arrtype(data);
+        }
+        else {
+            if (arrtype != data.constructor)
+                throw new Error('GL Type and ArrayBuffer is incompatible');
+        }
+        return new DynamicIndexBuffer(gl, data, type, usage);
+    }
+    exports.createIndexBuffer = createIndexBuffer;
+    function wrapIndexBuffer(gl, data, usage = WebGLRenderingContext.STREAM_DRAW) {
+        return new DynamicIndexBuffer(gl, data, ArrayType2GlType(data.constructor), usage);
+    }
+    exports.wrapIndexBuffer = wrapIndexBuffer;
 });

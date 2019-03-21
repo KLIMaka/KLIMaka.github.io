@@ -1,16 +1,27 @@
-define(["require", "exports", '../../../libs/dataviewstream'], function (require, exports, data) {
-    var ArtInfo = (function () {
-        function ArtInfo(w, h, anum, img) {
+define(["require", "exports", "../../../libs/dataviewstream"], function (require, exports, data) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class ArtInfo {
+        constructor(w, h, attrs, img) {
             this.w = w;
             this.h = h;
-            this.anum = anum;
+            this.attrs = attrs;
             this.img = img;
         }
-        return ArtInfo;
-    })();
+    }
     exports.ArtInfo = ArtInfo;
-    var ArtFile = (function () {
-        function ArtFile(stream) {
+    exports.NO_ANIMATION = 0;
+    exports.OSCILLATING_ANIMATION = 1;
+    exports.ANIMATE_FORWARD = 2;
+    exports.ANIMATE_BACKWARD = 3;
+    class Attributes {
+    }
+    exports.Attributes = Attributes;
+    var anumStruct = data.struct(Attributes, [
+        ['frames,type,xoff,yoff,speed,unused', data.bit_field([6, 2, -8, -8, 4, 4], true)]
+    ]);
+    class ArtFile {
+        constructor(stream) {
             this.stream = stream;
             var version = stream.readUInt();
             var numtiles = stream.readUInt();
@@ -19,7 +30,7 @@ define(["require", "exports", '../../../libs/dataviewstream'], function (require
             var size = end - start + 1;
             var hs = data.array(data.ushort, size).read(stream);
             var ws = data.array(data.ushort, size).read(stream);
-            var anums = data.array(data.uint, size).read(stream);
+            var anums = data.array(anumStruct, size).read(stream);
             var offsets = new Array(size);
             var offset = stream.mark();
             for (var i = 0; i < size; i++) {
@@ -34,44 +45,42 @@ define(["require", "exports", '../../../libs/dataviewstream'], function (require
             this.end = end;
             this.size = size;
         }
-        ArtFile.prototype.getInfo = function (id) {
+        getInfo(id) {
             var offset = this.offsets[id];
             this.stream.setOffset(offset);
             var w = this.ws[id];
             var h = this.hs[id];
             var anum = this.anums[id];
-            var pixels = data.array(data.ubyte, w * h).read(this.stream);
-            return new ArtInfo(w, h, anum, pixels);
-        };
-        ArtFile.prototype.getStart = function () {
+            var pixels = data.atomic_array(data.ubyte, w * h).read(this.stream);
+            return new ArtInfo(h, w, anum, pixels);
+        }
+        getStart() {
             return this.start;
-        };
-        ArtFile.prototype.getEnd = function () {
+        }
+        getEnd() {
             return this.end;
-        };
-        return ArtFile;
-    })();
+        }
+    }
     exports.ArtFile = ArtFile;
-    var ArtFiles = (function () {
-        function ArtFiles(arts) {
+    class ArtFiles {
+        constructor(arts) {
             this.arts = arts;
         }
-        ArtFiles.prototype.getArt = function (id) {
+        getArt(id) {
             for (var i in this.arts) {
                 var art = this.arts[i];
                 if (id >= art.getStart() && id <= art.getEnd())
                     return art;
             }
             return null;
-        };
-        ArtFiles.prototype.getInfo = function (id) {
+        }
+        getInfo(id) {
             var art = this.getArt(id);
             if (art == null)
                 return null;
             return art.getInfo(id - art.getStart());
-        };
-        return ArtFiles;
-    })();
+        }
+    }
     exports.ArtFiles = ArtFiles;
     function create(stream) {
         return new ArtFile(stream);

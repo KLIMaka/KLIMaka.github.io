@@ -1,11 +1,13 @@
-define(["require", "exports", '../../../libs/dataviewstream'], function (require, exports, data) {
-    var GrpFile = (function () {
-        function GrpFile(buf) {
+define(["require", "exports", "../../../libs/dataviewstream"], function (require, exports, data) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class GrpFile {
+        constructor(buf) {
             this.files = {};
             this.data = new data.DataViewStream(buf, true);
             this.loadFiles();
         }
-        GrpFile.prototype.loadFiles = function () {
+        loadFiles() {
             var d = this.data;
             d.setOffset(12);
             this.count = d.readUInt();
@@ -16,17 +18,16 @@ define(["require", "exports", '../../../libs/dataviewstream'], function (require
                 this.files[fname] = offset;
                 offset += size;
             }
-        };
-        GrpFile.prototype.get = function (fname) {
+        }
+        get(fname) {
             var off = this.files[fname];
             if (off != undefined) {
                 this.data.setOffset(off);
                 return this.data.subView();
             }
             return null;
-        };
-        return GrpFile;
-    })();
+        }
+    }
     exports.GrpFile = GrpFile;
     function create(buf) {
         return new GrpFile(buf);

@@ -1,4 +1,6 @@
 define(["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     exports.radsInDeg = 180 / Math.PI;
     exports.degInRad = Math.PI / 180;
     exports.PI2 = Math.PI * 2;
@@ -43,17 +45,36 @@ define(["require", "exports"], function (require, exports) {
         return Math.sqrt(x * x + y * y);
     }
     exports.len2d = len2d;
+    function len3d(x, y, z) {
+        return Math.sqrt(x * x + y * y + z * z);
+    }
+    exports.len3d = len3d;
+    function ang(x, y) {
+        if (x > 0 && y >= 0)
+            return Math.atan(x / y);
+        else if (x > 0 && y < 0)
+            return Math.atan(x / y) + 2 * Math.PI;
+        else if (x < 0)
+            return Math.atan(x / y) + Math.PI;
+        else if (x == 0 && y > 0)
+            return Math.PI / 2;
+        else if (x == 0 && y < 0)
+            return (3 * Math.PI) / 2;
+        else
+            return null;
+    }
+    exports.ang = ang;
     function cyclic(x, max) {
         return x > 0 ? (x % max) : (max + x % max);
     }
     exports.cyclic = cyclic;
     function ubyte2byte(n) {
         var minus = (n & 0x80) != 0;
-        return minus ? -(~n & 0xFF) + 1 : n;
+        return minus ? -(~n & 0xFF) - 1 : n;
     }
     exports.ubyte2byte = ubyte2byte;
-    var BBox = (function () {
-        function BBox(minx, maxx, miny, maxy, minz, maxz) {
+    class BBox {
+        constructor(minx, maxx, miny, maxy, minz, maxz) {
             this.minx = minx;
             this.maxx = maxx;
             this.miny = miny;
@@ -61,7 +82,7 @@ define(["require", "exports"], function (require, exports) {
             this.minz = minz;
             this.maxz = maxz;
         }
-        BBox.prototype.grow = function (bbox) {
+        grow(bbox) {
             this.minx = Math.min(this.minx, bbox.minx);
             this.miny = Math.min(this.miny, bbox.miny);
             this.minz = Math.min(this.minz, bbox.minz);
@@ -69,9 +90,8 @@ define(["require", "exports"], function (require, exports) {
             this.maxy = Math.max(this.maxy, bbox.maxy);
             this.maxz = Math.max(this.maxz, bbox.maxz);
             return this;
-        };
-        return BBox;
-    })();
+        }
+    }
     exports.BBox = BBox;
     function bbox(vtxs) {
         var minx = vtxs[0][0];

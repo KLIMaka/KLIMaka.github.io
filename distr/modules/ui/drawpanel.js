@@ -1,17 +1,18 @@
-define(["require", "exports", '../pixelprovider', '../../libs/mathutils', '../../libs/imgutils'], function (require, exports, P, MU, IU) {
-    var PixelDataProvider = (function () {
-        function PixelDataProvider(s, f) {
+define(["require", "exports", "../pixelprovider", "../../libs/mathutils", "../../libs/imgutils"], function (require, exports, P, MU, IU) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class PixelDataProvider {
+        constructor(s, f) {
             this.s = s;
             this.f = f;
         }
-        PixelDataProvider.prototype.size = function () {
+        size() {
             return this.s;
-        };
-        PixelDataProvider.prototype.get = function (i) {
+        }
+        get(i) {
             return this.f(i);
-        };
-        return PixelDataProvider;
-    })();
+        }
+    }
     exports.PixelDataProvider = PixelDataProvider;
     var noneImg = new Uint8Array([
         1, 1, 1, 1, 1, 1, 1, 1,
@@ -28,32 +29,32 @@ define(["require", "exports", '../pixelprovider', '../../libs/mathutils', '../..
         255, 0, 0
     ]);
     var noneProvider = P.fromPal(noneImg, nonePal, 8, 8);
-    var DrawPanel = (function () {
-        function DrawPanel(canvas, provider) {
+    class DrawPanel {
+        constructor(canvas, provider) {
             this.canvas = canvas;
             this.provider = provider;
             this.firstId = 0;
         }
-        DrawPanel.prototype.setCellSize = function (w, h) {
+        setCellSize(w, h) {
             this.cellW = w;
             this.cellH = h;
-        };
-        DrawPanel.prototype.setFirstId = function (id) {
+        }
+        setFirstId(id) {
             this.firstId = id;
-        };
-        DrawPanel.prototype.nextPage = function () {
+        }
+        nextPage() {
             var cells = MU.int(this.canvas.width / this.cellW) * MU.int(this.canvas.height / this.cellH);
             if (this.firstId + cells >= this.provider.size())
                 return;
             this.firstId += cells;
-        };
-        DrawPanel.prototype.prevPage = function () {
+        }
+        prevPage() {
             var cells = MU.int(this.canvas.width / this.cellW) * MU.int(this.canvas.height / this.cellH);
             if (this.firstId - cells < 0)
                 return;
             this.firstId -= cells;
-        };
-        DrawPanel.prototype.draw = function () {
+        }
+        draw() {
             var provider = this.provider;
             var canvas = this.canvas;
             var w = canvas.width;
@@ -72,11 +73,10 @@ define(["require", "exports", '../pixelprovider', '../../libs/mathutils', '../..
                 var img = provider.get(i);
                 if (img == null)
                     img = noneProvider;
-                var pixels = P.fit(this.cellW, this.cellH, img, [255, 255, 255, 255]);
+                var pixels = P.fit(this.cellW, this.cellH, img, new Uint8Array([255, 255, 255, 255]));
                 IU.drawToCanvas(pixels, canvas, x, y);
             }
-        };
-        return DrawPanel;
-    })();
+        }
+    }
     exports.DrawPanel = DrawPanel;
 });

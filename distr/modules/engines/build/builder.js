@@ -1,54 +1,83 @@
-define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath', '../../../libs_js/glutess', '../../meshbuilder', './utils'], function (require, exports, MU, VEC, GLU, mb, U) {
+define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath', '../../../libs_js/glutess', '../../meshbuilder', './utils', '../../../libs_js/glmatrix'], function (require, exports, MU, VEC, GLU, mb, U, GLM) {
+    "use strict";
     var SCALE = -16;
-    function triangulate(sector, walls) {
-        var i = 0;
-        var chains = [];
-        while (i < sector.wallnum) {
-            var ws = [];
-            var firstwallIdx = i + sector.wallptr;
-            var wall = walls[firstwallIdx];
-            ws.push(firstwallIdx);
-            while (wall.point2 != firstwallIdx) {
-                ws.push(wall.point2);
-                wall = walls[wall.point2];
-                i++;
-            }
-            i++;
-            chains.push(ws);
+    class SolidInfo {
+        constructor(bbox, ds) {
+            this.bbox = bbox;
+            this.ds = ds;
         }
+    }
+    class WallInfo {
+        constructor(up, down, middle) {
+            this.up = up;
+            this.down = down;
+            this.middle = middle;
+        }
+    }
+    class SectorInfo {
+        constructor(floor, ceiling) {
+            this.floor = floor;
+            this.ceiling = ceiling;
+        }
+    }
+    class SpriteInfo {
+        constructor(bbox, ds, face = false) {
+            this.bbox = bbox;
+            this.ds = ds;
+            this.face = face;
+        }
+    }
+    function triangulate(sector, walls) {
+        var contour = [];
         var contours = [];
-        for (var i = 0; i < chains.length; i++) {
-            var contour = [];
-            var chain = chains[i];
-            for (var j = 0; j < chain.length; j++) {
-                var wall = walls[chain[j]];
-                contour.push(wall.x, wall.y);
+        var fw = sector.wallptr;
+        for (var w = 0; w < sector.wallnum; w++) {
+            var wid = sector.wallptr + w;
+            var wall = walls[wid];
+            contour.push(wall.x, wall.y);
+            if (wall.point2 == fw) {
+                contours.push(contour);
+                contour = [];
+                fw = wid + 1;
             }
-            contours.push(contour);
         }
         return GLU.tesselate(contours);
     }
-    function addWall(wall, builder, quad, idx, tex, mat, base) {
+    function getWallTextureTransform(wall, wall2, tex, base) {
+        var wall1 = wall;
+        if (wall.cstat.xflip)
+            [wall1, wall2] = [wall2, wall1];
+        var tw = tex.getWidth();
+        var th = tex.getHeight();
+        var dx = wall2.x - wall1.x;
+        var dy = wall2.y - wall1.y;
+        var tcscalex = (wall.xrepeat * 8.0) / (MU.len2d(dx, dy) * tw);
+        var tcscaley = -(wall.yrepeat / 8.0) / (th * 16.0);
+        var tcxoff = wall.xpanning / tw;
+        var tcyoff = wall.ypanning / 256.0;
+        var trans = GLM.mat4.create();
+        GLM.mat4.translate(trans, trans, [tcxoff, tcyoff, 0, 0]);
+        GLM.mat4.scale(trans, trans, [tcscalex, tcscaley, 1, 1]);
+        GLM.mat4.rotateY(trans, trans, -Math.atan2(-dy, dx));
+        GLM.mat4.translate(trans, trans, [-wall1.x, -base, -wall1.y, 0]);
+        return trans;
+    }
+    function addWall(wall, wall2, builder, quad, idx, tex, mat, base) {
         // a -> b
         // ^    |
         // |    v
         // d <- c
-        var xflip = ((wall.cstat & 8) != 0) ? -1 : 1;
-        var yflip = ((wall.cstat & 256) != 0) ? -1 : 1;
-        var tcscalex = wall.xrepeat / 8.0 / (tex.getWidth() / 64.0) * xflip;
-        var tcscaley = (tex.getHeight() * 16) / (wall.yrepeat / 8.0) * yflip;
         var shade = wall.shade;
-        var tcxoff = wall.xpanning / tex.getWidth();
-        var tcyoff = wall.ypanning * wall.yrepeat;
-        builder.begin();
+        var trans = getWallTextureTransform(wall, wall2, tex, base);
         var a = quad[0];
-        var atc = [tcxoff, (tcyoff + base - a[1]) / tcscaley];
+        var atc = GLM.vec4.transformMat4(GLM.vec4.create(), [a[0], a[1], a[2], 1], trans);
         var b = quad[1];
-        var btc = [tcxoff + tcscalex, (tcyoff + base - b[1]) / tcscaley];
+        var btc = GLM.vec4.transformMat4(GLM.vec4.create(), [b[0], b[1], b[2], 1], trans);
         var c = quad[2];
-        var ctc = [tcxoff + tcscalex, (tcyoff + base - c[1]) / tcscaley];
+        var ctc = GLM.vec4.transformMat4(GLM.vec4.create(), [c[0], c[1], c[2], 1], trans);
         var d = quad[3];
-        var dtc = [tcxoff, (tcyoff + base - d[1]) / tcscaley];
+        var dtc = GLM.vec4.transformMat4(GLM.vec4.create(), [d[0], d[1], d[2], 1], trans);
+        builder.begin();
         if (a[1] == d[1]) {
             builder.addFace(mb.TRIANGLES, [a, b, c], [atc, btc, ctc], idx, shade);
         }
@@ -60,14 +89,14 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
         }
         else if (a[1] < d[1]) {
             var e = VEC.intersect3d(a, b, c, d);
-            var etc = [MU.len2d(e[0], e[2]) / tcscalex, (base - e[1]) / tcscaley];
+            var etc = GLM.vec4.transformMat4(GLM.vec4.create(), [e[0], e[1], e[2], 1], trans);
             builder.addFace(mb.TRIANGLES, [d, e, a], [dtc, etc, atc], idx, shade);
             builder.addFace(mb.TRIANGLES, [e, b, c], [etc, btc, ctc], idx, shade);
             VEC.release3d(e);
         }
         else if (b[1] < c[1]) {
             var e = VEC.intersect3d(a, b, c, d);
-            var etc = [MU.len2d(e[0], e[2]) / tcscalex, (base - e[1]) / tcscaley];
+            var etc = GLM.vec4.transformMat4(GLM.vec4.create(), [e[0], e[1], e[2], 1], trans);
             builder.addFace(mb.TRIANGLES, [a, e, d], [atc, etc, dtc], idx, shade);
             builder.addFace(mb.TRIANGLES, [e, c, b], [etc, ctc, btc], idx, shade);
             VEC.release3d(e);
@@ -77,57 +106,90 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
         }
         var mesh = builder.end(mat);
         var bbox = MU.bbox(quad);
-        var normal = VEC.detach3d(VEC.polygonNormal([a, b, c]));
-        return new SolidInfo(bbox, normal, mesh);
+        return new SolidInfo(bbox, mesh);
+    }
+    function getSectorTextureTransform(sector, ceiling, walls, tex) {
+        var xpan = ceiling ? sector.ceilingxpanning : sector.floorxpanning;
+        var ypan = ceiling ? sector.ceilingypanning : sector.floorypanning;
+        var stats = ceiling ? sector.ceilingstat : sector.floorstat;
+        var scale = stats.doubleSmooshiness ? 8.0 : 16.0;
+        var tcscalex = (stats.xflip ? -1.0 : 1.0) / (tex.getWidth() * scale);
+        var tcscaley = (stats.yflip ? -1.0 : 1.0) / (tex.getHeight() * scale);
+        var trans = GLM.mat4.create();
+        GLM.mat4.translate(trans, trans, [xpan / 256.0, ypan / 256.0, 0, 0]);
+        GLM.mat4.scale(trans, trans, [tcscalex, tcscaley, 1, 1]);
+        if (stats.swapXY) {
+            GLM.mat4.rotateZ(trans, trans, -Math.PI / 2);
+            GLM.mat4.scale(trans, trans, [-1, 1, 1, 1]);
+        }
+        if (stats.alignToFirstWall) {
+            var w1 = walls[sector.wallptr];
+            GLM.mat4.rotateZ(trans, trans, U.getFirstWallAngle(sector, walls));
+            GLM.mat4.translate(trans, trans, [-w1.x, -w1.y, 0, 0]);
+        }
+        return trans;
+    }
+    function getVertex(x, y, slope, heinum, z) {
+        z = slope(x, y, heinum) + z;
+        return [x, z / SCALE, y];
     }
     function addSector(tris, ceiling, sector, walls, builder, idx, tex, mat) {
         var heinum = ceiling ? sector.ceilingheinum : sector.floorheinum;
         var z = ceiling ? sector.ceilingz : sector.floorz;
-        var slope = U.createSlopeCalculator(sector, walls);
-        var tcscalex = tex.getWidth() * 16;
-        var tcscaley = tex.getHeight() * 16;
         var shade = ceiling ? sector.ceilingshade : sector.floorshade;
+        var trans = getSectorTextureTransform(sector, ceiling, walls, tex);
+        var slope = U.createSlopeCalculator(sector, walls);
         var vtxs = [];
         var tcs = [];
-        var normal = null;
         builder.begin();
-        for (var i = 0; i < tris.length; i += 3) {
-            var t0x = tris[i + 0][0];
-            var t1x = tris[i + 1][0];
-            var t2x = tris[i + 2][0];
-            var t0y = tris[i + 0][1];
-            var t1y = tris[i + 1][1];
-            var t2y = tris[i + 2][1];
-            var z1 = slope(t0x, t0y, heinum) + z;
-            var z2 = slope(t1x, t1y, heinum) + z;
-            var z3 = slope(t2x, t2y, heinum) + z;
-            var v1 = [t0x, z1 / SCALE, t0y];
-            var v2 = [t1x, z2 / SCALE, t1y];
-            var v3 = [t2x, z3 / SCALE, t2y];
-            var v1tc = [t0x / tcscalex, t0y / tcscaley];
-            var v2tc = [t1x / tcscalex, t1y / tcscaley];
-            var v3tc = [t2x / tcscalex, t2y / tcscaley];
+        var verts = tris[0];
+        var indexes = tris[1];
+        for (var i = 0; i < indexes.length; i += 3) {
+            var v1 = getVertex(verts[indexes[i + 0]][0], verts[indexes[i + 0]][1], slope, heinum, z);
+            var v2 = getVertex(verts[indexes[i + 1]][0], verts[indexes[i + 1]][1], slope, heinum, z);
+            var v3 = getVertex(verts[indexes[i + 2]][0], verts[indexes[i + 2]][1], slope, heinum, z);
+            var v1tc = GLM.vec4.transformMat4(GLM.vec4.create(), [v1[0], v1[2], 0, 1], trans);
+            var v2tc = GLM.vec4.transformMat4(GLM.vec4.create(), [v2[0], v2[2], 0, 1], trans);
+            var v3tc = GLM.vec4.transformMat4(GLM.vec4.create(), [v3[0], v3[2], 0, 1], trans);
             vtxs = vtxs.concat(ceiling ? [v3, v2, v1] : [v1, v2, v3]);
             tcs = tcs.concat(ceiling ? [v3tc, v2tc, v1tc] : [v1tc, v2tc, v3tc]);
-            if (normal == null)
-                normal = VEC.detach3d(VEC.polygonNormal(vtxs));
         }
         builder.addFace(mb.TRIANGLES, vtxs, tcs, idx, shade);
         var mesh = builder.end(mat);
         var bbox = MU.bbox(vtxs);
-        return new SolidInfo(bbox, normal, mesh);
+        return new SolidInfo(bbox, mesh);
+    }
+    function getWallSpriteVtxs(x, y, z, xo, yo, hw, hh, ang) {
+        var dx = Math.sin(ang) * hw;
+        var dy = Math.cos(ang) * hw;
+        var a = [x - dx, z - hh + yo, y - dy];
+        var b = [x + dx, z - hh + yo, y + dy];
+        var c = [x + dx, z + hh + yo, y + dy];
+        var d = [x - dx, z + hh + yo, y - dy];
+        return [a, b, c, d];
+    }
+    function getFloorSpriteVtxs(x, y, z, xo, yo, hw, hh, ang) {
+        var dwx = Math.sin(ang) * hw;
+        var dwy = Math.cos(ang) * hw;
+        var dhx = Math.sin(ang + Math.PI / 2) * hh;
+        var dhy = Math.cos(ang + Math.PI / 2) * hh;
+        var a = [x - dwx - dhx, z + 1, y - dwy - dhy];
+        var b = [x + dwx + dhx, z + 1, y - dwy - dhy];
+        var c = [x + dwx + dhx, z + 1, y + dwy + dhy];
+        var d = [x - dwx - dhx, z + 1, y + dwy + dhy];
+        return [a, b, c, d];
     }
     function addSprite(spr, builder, tex, materials, tinfo, idx) {
         var x = spr.x;
         var y = spr.y;
         var z = spr.z / SCALE;
         var w = tex.getWidth();
-        var hw = (w * spr.xrepeat) / 2 / 4;
+        var hw = (w * spr.xrepeat) / 8;
         var h = tex.getHeight();
-        var hh = (h * spr.yrepeat) / 2 / 4;
+        var hh = (h * spr.yrepeat) / 8;
         var ang = MU.PI2 - (spr.ang / 2048) * MU.PI2;
-        var xf = (spr.cstat & 0x04) == 0x04;
-        var yf = (spr.cstat & 0x08) == 0x08;
+        var xf = spr.cstat.xflip;
+        var yf = spr.cstat.yflip;
         var xo = (tinfo >> 8) & 0xFF;
         xo = MU.ubyte2byte(xo) * 16 * (spr.xrepeat / 64);
         var yo = (tinfo >> 16) & 0xFF;
@@ -135,7 +197,7 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
         var tcs = [[xf ? 0 : 1, yf ? 0 : 1], [xf ? 1 : 0, yf ? 0 : 1], [xf ? 1 : 0, yf ? 1 : 0], [xf ? 0 : 1, yf ? 1 : 0]];
         var vtxs = null;
         var mat = null;
-        if ((spr.cstat & 0x30) == 0x00) {
+        if (spr.cstat.type == 0) {
             var pos = [x, z, y];
             var a = [+hw, -hh + yo, 0];
             var b = [-hw, -hh + yo, 0];
@@ -149,32 +211,18 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
             var mesh = builder.end(mat);
             return new SpriteInfo(bbox, mesh, true);
         }
-        else if ((spr.cstat & 0x30) == 0x10) {
-            var dx = Math.sin(ang) * hw;
-            var dy = Math.cos(ang) * hw;
-            var a = [x - dx, z - hh + yo, y - dy];
-            var b = [x + dx, z - hh + yo, y + dy];
-            var c = [x + dx, z + hh + yo, y + dy];
-            var d = [x - dx, z + hh + yo, y - dy];
-            vtxs = [a, b, c, d];
+        else if (spr.cstat.type == 1) {
+            vtxs = getWallSpriteVtxs(x, y, z, xo, yo, hw, hh, ang);
             mat = materials.solid(tex);
         }
-        else if ((spr.cstat & 0x30) == 0x20) {
-            var dwx = Math.sin(ang) * hw;
-            var dwy = Math.cos(ang) * hw;
-            var dhx = Math.sin(ang + Math.PI / 2) * hh;
-            var dhy = Math.cos(ang + Math.PI / 2) * hh;
-            var a = [x - dwx - dhx, z + 1, y - dwy - dhy];
-            var b = [x + dwx + dhx, z + 1, y - dwy - dhy];
-            var c = [x + dwx + dhx, z + 1, y + dwy + dhy];
-            var d = [x - dwx - dhx, z + 1, y + dwy + dhy];
-            vtxs = [a, b, c, d];
+        else if (spr.cstat.type == 2) {
+            vtxs = getFloorSpriteVtxs(x, y, z, xo, yo, hw, hh, ang);
             mat = materials.solid(tex);
         }
         var bbox = MU.bbox(vtxs);
         builder.begin();
         builder.addFace(mb.QUADS, vtxs, tcs, idx, spr.shade);
-        if ((spr.cstat & 0x40) == 0) {
+        if (!spr.cstat.onesided) {
             vtxs.reverse();
             tcs.reverse();
             builder.addFace(mb.QUADS, vtxs, tcs, idx, spr.shade);
@@ -182,49 +230,17 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
         var mesh = builder.end(mat);
         return new SpriteInfo(bbox, mesh);
     }
-    var DrawStruct = (function () {
-        function DrawStruct(offset, length, tex) {
+    class DrawStruct {
+        constructor(offset, length, tex) {
             this.ptr = [WebGLRenderingContext.TRIANGLES, 0, 0];
             this.tex = {};
             this.ptr[1] = offset;
             this.ptr[2] = length;
             this.tex['base'] = tex;
         }
-        return DrawStruct;
-    })();
-    var SolidInfo = (function () {
-        function SolidInfo(bbox, normal, ds) {
-            this.bbox = bbox;
-            this.normal = normal;
-            this.ds = ds;
-        }
-        return SolidInfo;
-    })();
-    var WallInfo = (function () {
-        function WallInfo(up, down) {
-            this.up = up;
-            this.down = down;
-        }
-        return WallInfo;
-    })();
-    var SectorInfo = (function () {
-        function SectorInfo(floor, ceiling) {
-            this.floor = floor;
-            this.ceiling = ceiling;
-        }
-        return SectorInfo;
-    })();
-    var SpriteInfo = (function () {
-        function SpriteInfo(bbox, ds, face) {
-            if (face === void 0) { face = false; }
-            this.bbox = bbox;
-            this.ds = ds;
-            this.face = face;
-        }
-        return SpriteInfo;
-    })();
-    var DefaultBoardBuilder = (function () {
-        function DefaultBoardBuilder(gl) {
+    }
+    class DefaultBoardBuilder {
+        constructor(gl) {
             this.off = 0;
             this.len = 0;
             this.builder = new mb.MeshBuilderConstructor()
@@ -240,7 +256,7 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
             this.idxBuf = tmp.getIndexBuffer();
             this.mode = tmp.getMode();
         }
-        DefaultBoardBuilder.prototype.addFace = function (type, verts, tcs, idx, shade) {
+        addFace(type, verts, tcs, idx, shade) {
             this.builder.start(type)
                 .attr('aNorm', VEC.detach3d(VEC.polygonNormal(verts)))
                 .attr('aIdx', MU.int2vec4(idx))
@@ -252,8 +268,8 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
             }
             this.builder.end();
             this.len += (type == mb.QUADS ? (6 * verts.length / 4) : verts.length);
-        };
-        DefaultBoardBuilder.prototype.addSprite = function (verts, pos, tcs, idx, shade) {
+        }
+        addSprite(verts, pos, tcs, idx, shade) {
             this.builder.start(mb.QUADS)
                 .attr('aPos', pos)
                 .attr('aIdx', MU.int2vec4(idx))
@@ -265,35 +281,24 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
             }
             this.builder.end();
             this.len += 6;
-        };
-        DefaultBoardBuilder.prototype.begin = function () {
+        }
+        begin() {
             this.off = this.builder.offset() * 2;
             this.len = 0;
-        };
-        DefaultBoardBuilder.prototype.end = function (mat) {
-            return new mb.Mesh(mat, this.vtxBuf, this.idxBuf, this.mode, this.len, this.off);
-        };
-        DefaultBoardBuilder.prototype.finish = function (gl) {
-            this.builder.build(gl, null);
-        };
-        return DefaultBoardBuilder;
-    })();
-    var Builder1 = (function () {
-        function Builder1(gl) {
-            this.gl = gl;
         }
-        Builder1.prototype.updateWall = function (wall, section, verts, tcs, idx, shade) {
-        };
-        Builder1.prototype.updateSector = function () {
-        };
-        return Builder1;
-    })();
+        end(mat) {
+            return new mb.Mesh(mat, this.vtxBuf, this.idxBuf, this.mode, this.len, this.off);
+        }
+        finish(gl) {
+            this.builder.build(gl, null);
+        }
+    }
     function getWallVtxs(x1, y1, x2, y2, slope, nextslope, heinum, nextheinum, z, nextz, check) {
         var z1 = (slope(x1, y1, heinum) + z) / SCALE;
         var z2 = (slope(x2, y2, heinum) + z) / SCALE;
         var z3 = (nextslope(x2, y2, nextheinum) + nextz) / SCALE;
         var z4 = (nextslope(x1, y1, nextheinum) + nextz) / SCALE;
-        if (check && (z4 > z1 && z3 > z2))
+        if (check && (z4 >= z1 && z3 >= z2))
             return null;
         var a = [x1, z1, y1];
         var b = [x2, z2, y2];
@@ -301,8 +306,27 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
         var d = [x1, z4, y1];
         return [a, b, c, d];
     }
-    var BoardProcessor = (function () {
-        function BoardProcessor(board) {
+    function getMaskedWallVtxs(x1, y1, x2, y2, slope, nextslope, ceilheinum, ceilnextheinum, ceilz, ceilnextz, floorheinum, floornextheinum, floorz, floornextz) {
+        var currz1 = (slope(x1, y1, ceilheinum) + ceilz) / SCALE;
+        var currz2 = (slope(x2, y2, ceilheinum) + ceilz) / SCALE;
+        var currz3 = (slope(x2, y2, floorheinum) + floorz) / SCALE;
+        var currz4 = (slope(x1, y1, floorheinum) + floorz) / SCALE;
+        var nextz1 = (nextslope(x1, y1, ceilnextheinum) + ceilnextz) / SCALE;
+        var nextz2 = (nextslope(x2, y2, ceilnextheinum) + ceilnextz) / SCALE;
+        var nextz3 = (nextslope(x2, y2, floornextheinum) + floornextz) / SCALE;
+        var nextz4 = (nextslope(x1, y1, floornextheinum) + floornextz) / SCALE;
+        var z1 = Math.min(currz1, nextz1);
+        var z2 = Math.min(currz2, nextz2);
+        var z3 = Math.max(currz3, nextz3);
+        var z4 = Math.max(currz4, nextz4);
+        var a = [x1, z1, y1];
+        var b = [x2, z2, y2];
+        var c = [x2, z3, y2];
+        var d = [x1, z4, y1];
+        return [a, b, c, d];
+    }
+    class BoardProcessor {
+        constructor(board) {
             this.board = board;
             this.walls = [];
             this.sectors = [];
@@ -311,8 +335,7 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
             this.index = [];
             this.dss = [];
         }
-        BoardProcessor.prototype.build = function (gl, textureProvider, materials, builder) {
-            if (builder === void 0) { builder = new DefaultBoardBuilder(gl); }
+        build(gl, textureProvider, materials, builder = new DefaultBoardBuilder(gl)) {
             var idx = 1;
             var sectors = this.board.sectors;
             var walls = this.board.walls;
@@ -336,11 +359,11 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
                     var x2 = wall2.x;
                     var y2 = wall2.y;
                     var tex = textureProvider.get(wall.picnum);
-                    if (wall.nextwall == -1) {
+                    if (wall.nextwall == -1 || wall.cstat.oneWay) {
                         var vtxs = getWallVtxs(x1, y1, x2, y2, slope, slope, ceilingheinum, floorheinum, ceilingz, floorz, false);
-                        var base = ((wall.cstat & 4) != 0) ? floorz : ceilingz;
-                        var solid = addWall(wall, builder, vtxs, idx, tex, materials.solid(tex), base / SCALE);
-                        this.walls[w] = new WallInfo(solid, null);
+                        var base = wall.cstat.alignBottom ? floorz : ceilingz;
+                        var solid = addWall(wall, wall2, builder, vtxs, idx, tex, materials.solid(tex), base / SCALE);
+                        this.walls[w] = new WallInfo(solid, null, null);
                     }
                     else {
                         var nextsector = sectors[wall.nextsector];
@@ -349,34 +372,40 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
                         var nextceilingz = nextsector.ceilingz;
                         var up = null;
                         var down = null;
+                        var middle = null;
                         var nextfloorheinum = nextsector.floorheinum;
                         var vtxs = getWallVtxs(x1, y1, x2, y2, nextslope, slope, nextfloorheinum, floorheinum, nextfloorz, floorz, true);
                         if (vtxs != null) {
-                            var wall_ = ((wall.cstat & 2) != 0) ? walls[wall.nextwall] : wall;
+                            var wall_ = wall.cstat.swapBottoms ? walls[wall.nextwall] : wall;
+                            var wall2_ = wall.cstat.swapBottoms ? walls[wall_.point2] : wall2;
                             var tex_ = textureProvider.get(wall_.picnum);
-                            var base = ((wall.cstat & 4) != 0) ? ceilingz : nextfloorz;
-                            up = addWall(wall_, builder, vtxs, idx, tex_, materials.solid(tex_), base / SCALE);
+                            var base = wall.cstat.alignBottom ? ceilingz : nextfloorz;
+                            up = addWall(wall_, wall2_, builder, vtxs, idx, tex_, materials.solid(tex_), base / SCALE);
                             this.dss.push(up.ds);
                         }
                         var nextceilingheinum = nextsector.ceilingheinum;
                         var vtxs = getWallVtxs(x1, y1, x2, y2, slope, nextslope, ceilingheinum, nextceilingheinum, ceilingz, nextceilingz, true);
                         if (vtxs != null) {
-                            var base = ((wall.cstat & 4) != 0) ? ceilingz : nextceilingz;
-                            down = addWall(wall, builder, vtxs, idx, tex, materials.solid(tex), base / SCALE);
+                            var base = wall.cstat.alignBottom ? ceilingz : nextceilingz;
+                            down = addWall(wall, wall2, builder, vtxs, idx, tex, materials.solid(tex), base / SCALE);
                             this.dss.push(down.ds);
                         }
-                        if (up != null || down != null) {
-                            if (up == null)
-                                this.walls[w] = new WallInfo(down, up);
-                            else
-                                this.walls[w] = new WallInfo(up, down);
+                        if (wall.cstat.masking) {
+                            var tex1 = textureProvider.get(wall.overpicnum);
+                            var vtxs = getMaskedWallVtxs(x1, y1, x2, y2, slope, nextslope, ceilingheinum, nextceilingheinum, ceilingz, nextceilingz, floorheinum, nextfloorheinum, floorz, nextfloorz);
+                            var base = wall.cstat.alignBottom ? Math.min(floorz, nextfloorz) : Math.max(ceilingz, nextceilingz);
+                            middle = addWall(wall, wall2, builder, vtxs, idx, tex1, materials.solid(tex1), base / SCALE);
+                            this.dss.push(middle.ds);
+                        }
+                        if (up != null || down != null || middle != null) {
+                            this.walls[w] = new WallInfo(up, down, middle);
                         }
                     }
                     i++;
                     idx++;
                 }
                 var tris = triangulate(sector, walls);
-                if (tris.length == 0)
+                if (tris[1].length == 0)
                     continue;
                 var floortex = textureProvider.get(sector.floorpicnum);
                 var ceilingtex = textureProvider.get(sector.ceilingpicnum);
@@ -390,7 +419,7 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
                     var sprite = sprites[i];
                     var spr = this.board.sprites[sprite];
                     this.index[idx] = [spr, sprite];
-                    if (spr.picnum == 0)
+                    if (spr.picnum == 0 || spr.cstat.invicible)
                         continue;
                     var tex = textureProvider.get(spr.picnum);
                     var tinfo = textureProvider.getInfo(spr.picnum);
@@ -402,11 +431,11 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
             }
             builder.finish(gl);
             return this;
-        };
-        BoardProcessor.prototype.getAll = function () {
+        }
+        getAll() {
             return this.dss;
-        };
-        BoardProcessor.prototype.getNotInSector = function (ms, eye) {
+        }
+        getNotInSector(ms, eye) {
             var ds = [];
             var sectors = this.sectors;
             var walls = this.walls;
@@ -416,30 +445,30 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
                 var sector = sectors[i];
                 if (sector == undefined)
                     continue;
-                if (bboxVisible(ms, eye, sector.floor.bbox, sector.floor.normal))
+                if (bboxVisible(ms, eye, sector.floor.bbox))
                     ds.push(sector.floor.ds);
-                if (bboxVisible(ms, eye, sector.ceiling.bbox, sector.ceiling.normal))
+                if (bboxVisible(ms, eye, sector.ceiling.bbox))
                     ds.push(sector.ceiling.ds);
             }
             for (var i = 0; i < walls.length; i++) {
                 var wallinfo = walls[i];
                 if (wallinfo == undefined)
                     continue;
-                if (bboxVisible(ms, eye, wallinfo.up.bbox, wallinfo.up.normal))
+                if (wallinfo.up != null && bboxVisible(ms, eye, wallinfo.up.bbox))
                     ds.push(wallinfo.up.ds);
-                if (wallinfo.down != null && bboxVisible(ms, eye, wallinfo.down.bbox, wallinfo.down.normal))
+                if (wallinfo.down != null && bboxVisible(ms, eye, wallinfo.down.bbox))
                     ds.push(wallinfo.down.ds);
             }
             for (var i = 0; i < sprites.length; i++) {
                 var spriteInfo = sprites[i];
                 if (spriteInfo == null)
                     continue;
-                if (bboxVisible(ms, eye, spriteInfo.bbox, null))
+                if (bboxVisible(ms, eye, spriteInfo.bbox))
                     ds.push(spriteInfo.ds);
             }
             return ds;
-        };
-        BoardProcessor.prototype.getInSector = function (ms) {
+        }
+        getInSector(ms) {
             var ds = [];
             var dss = [];
             var board = this.board;
@@ -455,21 +484,18 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
                 var cursec = board.sectors[cursecnum];
                 for (var w = 0; w < cursec.wallnum; w++) {
                     var wallidx = cursec.wallptr + w;
-                    var wall = board.walls[wallidx];
-                    var wall2 = board.walls[wall.point2];
-                    var dx1 = wall2.x - wall.x;
-                    var dy1 = wall2.y - wall.y;
-                    var dx2 = ms.x - wall.x;
-                    var dy2 = ms.y - wall.y;
-                    if (dx1 * dy2 < dy1 * dx2)
+                    if (!U.wallVisible(board.walls[wallidx], board.walls[board.walls[wallidx].point2], ms))
                         continue;
                     var wallinfo = walls[wallidx];
                     if (wallinfo != undefined) {
-                        ds.push(wallinfo.up.ds);
+                        if (wallinfo.up != null)
+                            ds.push(wallinfo.up.ds);
                         if (wallinfo.down != null)
                             ds.push(wallinfo.down.ds);
+                        if (wallinfo.middle != null)
+                            ds.push(wallinfo.middle.ds);
                     }
-                    var nextsector = wall.nextsector;
+                    var nextsector = board.walls[wallidx].nextsector;
                     if (nextsector == -1)
                         continue;
                     if (pvs.indexOf(nextsector) == -1)
@@ -486,22 +512,21 @@ define(["require", "exports", '../../../libs/mathutils', '../../../libs/vecmath'
                 }
             }
             return ds.concat(dss);
-        };
-        BoardProcessor.prototype.get = function (ms, eye) {
+        }
+        get(ms, eye) {
             if (!U.inSector(this.board, ms.x, ms.y, ms.sec)) {
                 ms.sec = U.findSector(this.board, ms.x, ms.y, ms.sec);
             }
             return ms.sec == -1
                 ? this.getNotInSector(ms, eye)
                 : this.getInSector(ms);
-        };
-        BoardProcessor.prototype.getByIdx = function (idx) {
+        }
+        getByIdx(idx) {
             return this.index[idx];
-        };
-        return BoardProcessor;
-    })();
+        }
+    }
     exports.BoardProcessor = BoardProcessor;
-    function bboxVisible(ms, eye, bbox, normal) {
+    function bboxVisible(ms, eye, bbox) {
         var dmaxx = bbox.maxx - ms.x;
         var dmaxz = bbox.maxz - ms.y;
         var dminx = bbox.minx - ms.x;

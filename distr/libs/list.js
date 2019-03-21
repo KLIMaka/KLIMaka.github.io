@@ -1,66 +1,62 @@
 define(["require", "exports"], function (require, exports) {
-    var Node = (function () {
-        function Node(obj, next, prev) {
-            if (obj === void 0) { obj = null; }
-            if (next === void 0) { next = null; }
-            if (prev === void 0) { prev = null; }
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class Node {
+        constructor(obj = null, next = null, prev = null) {
             this.obj = obj;
             this.next = next;
             this.prev = prev;
         }
-        return Node;
-    })();
+    }
     exports.Node = Node;
-    var List = (function () {
-        function List() {
+    class List {
+        constructor() {
             this.nil = new Node();
             this.nil.next = this.nil;
             this.nil.prev = this.nil;
         }
-        List.prototype.first = function () {
+        first() {
             return this.nil.next;
-        };
-        List.prototype.last = function () {
+        }
+        last() {
             return this.nil.prev;
-        };
-        List.prototype.pop = function () {
+        }
+        terminator() {
+            return this.nil;
+        }
+        pop() {
             var ret = this.last().obj;
             this.remove(this.last());
             return ret;
-        };
-        List.prototype.isEmpty = function () {
+        }
+        isEmpty() {
             return this.nil.next == this.nil;
-        };
-        List.prototype.insertNodeBefore = function (node, ref) {
-            if (ref === void 0) { ref = this.nil.next; }
+        }
+        insertNodeBefore(node, ref = this.nil.next) {
             node.next = ref;
             node.prev = ref.prev;
             node.prev.next = node;
             ref.prev = node;
-        };
-        List.prototype.insertBefore = function (val, ref) {
-            if (ref === void 0) { ref = this.nil.next; }
+        }
+        insertBefore(val, ref = this.nil.next) {
             this.insertNodeBefore(new Node(val), ref);
-        };
-        List.prototype.insertNodeAfter = function (node, ref) {
-            if (ref === void 0) { ref = this.nil.prev; }
+        }
+        insertNodeAfter(node, ref = this.nil.prev) {
             node.next = ref.next;
             node.next.prev = node;
             ref.next = node;
             node.prev = ref;
-        };
-        List.prototype.insertAfter = function (val, ref) {
-            if (ref === void 0) { ref = this.nil.prev; }
+        }
+        insertAfter(val, ref = this.nil.prev) {
             this.insertNodeAfter(new Node(val), ref);
-        };
-        List.prototype.remove = function (ref) {
+        }
+        remove(ref) {
             if (ref == this.nil)
                 return;
             ref.next.prev = ref.prev;
             ref.prev.next = ref.next;
             return ref;
-        };
-        return List;
-    })();
+        }
+    }
     exports.List = List;
 });

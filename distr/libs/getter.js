@@ -1,32 +1,32 @@
 define(["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     var cache = {};
-    var Loader = (function () {
-        function Loader() {
+    class Loader {
+        constructor() {
             this.toLoad = 0;
         }
-        Loader.prototype.load = function (fname, progress) {
-            if (progress === void 0) { progress = null; }
+        load(fname, progress = null) {
             var self = this;
-            preload(fname, function (b) { cache[fname] = b; self.ready(fname); }, progress);
+            preload(fname, (b) => { cache[fname] = b; self.ready(fname); }, progress);
             this.toLoad++;
             return this;
-        };
-        Loader.prototype.loadString = function (fname) {
+        }
+        loadString(fname) {
             var self = this;
-            preloadString(fname, function (s) { cache[fname] = s; self.ready(fname); });
+            preloadString(fname, (s) => { cache[fname] = s; self.ready(fname); });
             this.toLoad++;
             return this;
-        };
-        Loader.prototype.finish = function (callback) {
+        }
+        finish(callback) {
             this.callback = callback;
-        };
-        Loader.prototype.ready = function (fname) {
+        }
+        ready(fname) {
             this.toLoad--;
             if (this.toLoad == 0)
                 this.callback();
-        };
-        return Loader;
-    })();
+        }
+    }
     exports.Loader = Loader;
     exports.loader = new Loader();
     function get(fname) {
@@ -37,17 +37,16 @@ define(["require", "exports"], function (require, exports) {
         return cache[fname];
     }
     exports.getString = getString;
-    function preload(fname, callback, progressCallback) {
-        if (progressCallback === void 0) { progressCallback = null; }
+    function preload(fname, callback, progressCallback = null) {
         var file = cache[fname];
         if (file != undefined) {
             callback(file);
             return;
         }
         var xhr = new XMLHttpRequest();
-        xhr.onload = function () { callback(xhr.response); };
+        xhr.onload = () => { callback(xhr.response); };
         if (progressCallback)
-            xhr.onprogress = function (evt) { progressCallback(evt.loaded / evt.total); };
+            xhr.onprogress = (evt) => { progressCallback(evt.loaded / evt.total); };
         xhr.open('GET', fname, true);
         xhr.responseType = 'arraybuffer';
         xhr.send();
@@ -61,7 +60,7 @@ define(["require", "exports"], function (require, exports) {
         }
         var xhr = new XMLHttpRequest();
         xhr.responseType = "text";
-        xhr.onload = function () { callback(xhr.response); };
+        xhr.onload = () => { callback(xhr.response); };
         xhr.open('GET', fname, true);
         xhr.send();
     }

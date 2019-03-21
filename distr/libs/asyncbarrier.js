@@ -1,34 +1,35 @@
 define(["require", "exports"], function (require, exports) {
-    var AsyncBarrier = (function () {
-        function AsyncBarrier(cb) {
-            this.cb = cb;
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class AsyncBarrier {
+        constructor() {
             this.results = {};
             this.requests = 0;
             this.isWaiting = false;
         }
-        AsyncBarrier.prototype.callback = function (name) {
+        callback(name) {
             var self = this;
             this.requests++;
-            return function (val) {
+            return (val) => {
                 self.result(name, val);
             };
-        };
-        AsyncBarrier.prototype.result = function (name, value) {
+        }
+        result(name, value) {
             this.results[name] = value;
             this.requests--;
             if (this.requests == 0 && this.isWaiting)
                 this.cb(this.results);
-        };
-        AsyncBarrier.prototype.wait = function () {
+        }
+        wait(cb) {
+            this.cb = cb;
             if (this.requests == 0)
                 this.cb(this.results);
             this.isWaiting = true;
-        };
-        return AsyncBarrier;
-    })();
+        }
+    }
     exports.AsyncBarrier = AsyncBarrier;
-    function create(cb) {
-        return new AsyncBarrier(cb);
+    function create() {
+        return new AsyncBarrier();
     }
     exports.create = create;
 });

@@ -1,53 +1,67 @@
-define(["require", "exports", '../../../libs/dataviewstream', './structs'], function (require, exports, data, build) {
+define(["require", "exports", "../../../libs/dataviewstream", "./structs"], function (require, exports, data, build) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var sectorStats = data.struct(build.SectorStats, [[
+            'parallaxing,slopped,swapXY,doubleSmooshiness,xflip,yflip,alignToFirstWall,_',
+            data.bit_field([1, 1, 1, 1, 1, 1, 1, 9], true)
+        ]]);
     exports.sectorStruct = data.struct(build.Sector, [
         ['wallptr', data.ushort],
         ['wallnum', data.ushort],
         ['ceilingz', data.int],
         ['floorz', data.int],
-        ['ceilingstat', data.ushort],
-        ['floorstat', data.ushort],
+        ['ceilingstat', sectorStats],
+        ['floorstat', sectorStats],
         ['ceilingpicnum', data.ushort],
         ['ceilingheinum', data.short],
         ['ceilingshade', data.byte],
         ['ceilingpal', data.ubyte],
-        ['ceilingxpanning', data.byte],
-        ['ceilingypanning', data.byte],
+        ['ceilingxpanning', data.ubyte],
+        ['ceilingypanning', data.ubyte],
         ['floorpicnum', data.ushort],
         ['floorheinum', data.short],
         ['floorshade', data.byte],
         ['floorpal', data.ubyte],
-        ['floorxpanning', data.byte],
-        ['floorypanning', data.byte],
+        ['floorxpanning', data.ubyte],
+        ['floorypanning', data.ubyte],
         ['visibility', data.byte],
         ['filler', data.byte],
         ['lotag', data.ushort],
         ['hitag', data.ushort],
         ['extra', data.ushort]
     ]);
+    var wallStats = data.struct(build.WallStats, [[
+            'blocking,swapBottoms,alignBottom,xflip,masking,oneWay,blocking2,translucent,yflip,translucentReversed,_',
+            data.bit_field([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6], true)
+        ]]);
     exports.wallStruct = data.struct(build.Wall, [
         ['x', data.int],
         ['y', data.int],
         ['point2', data.ushort],
         ['nextwall', data.short],
         ['nextsector', data.short],
-        ['cstat', data.ushort],
+        ['cstat', wallStats],
         ['picnum', data.ushort],
         ['overpicnum', data.ushort],
         ['shade', data.byte],
         ['pal', data.ubyte],
         ['xrepeat', data.ubyte],
         ['yrepeat', data.ubyte],
-        ['xpanning', data.byte],
-        ['ypanning', data.byte],
+        ['xpanning', data.ubyte],
+        ['ypanning', data.ubyte],
         ['lotag', data.ushort],
         ['hitag', data.ushort],
         ['extra', data.ushort]
     ]);
+    var spriteStats = data.struct(build.SpriteStats, [[
+            'blocking,translucent,xflip,yflip,type,onesided,realCenter,blocking2,tranclucentReversed,noautoshading,_,invicible',
+            data.bit_field([1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 4, 1], true)
+        ]]);
     exports.spriteStruct = data.struct(build.Sprite, [
         ['x', data.int],
         ['y', data.int],
         ['z', data.int],
-        ['cstat', data.ushort],
+        ['cstat', spriteStats],
         ['picnum', data.ushort],
         ['shade', data.byte],
         ['pal', data.ubyte],

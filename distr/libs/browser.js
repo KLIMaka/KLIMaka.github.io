@@ -1,4 +1,6 @@
 define(["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     function getQueryVariable(variable) {
         var query = window.location.search.substring(1);
         var vars = query.split("&");

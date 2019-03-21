@@ -1,4 +1,6 @@
-define(["require", "exports", '../../libs/dataviewstream', '../pixelprovider'], function (require, exports, data, pixel) {
+define(["require", "exports", "../../libs/dataviewstream", "../pixelprovider"], function (require, exports, data, pixel) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     var LZbuf = new Uint8Array(0x1000);
     function LZ(r, size) {
         var ret = new Uint8Array(size);
@@ -46,8 +48,7 @@ define(["require", "exports", '../../libs/dataviewstream', '../pixelprovider'], 
             return ret;
         }
     }
-    function createImage(w, h, data, trans, pal, isFlip) {
-        if (isFlip === void 0) { isFlip = false; }
+    function createImage(w, h, data, trans, pal, isFlip = false) {
         var provider = new pixel.RGBPalPixelProvider(data, pal, w, h, 255, trans);
         if (isFlip)
             provider = pixel.axisSwap(provider);
@@ -93,7 +94,7 @@ define(["require", "exports", '../../libs/dataviewstream', '../pixelprovider'], 
         var type = r.readUByte();
         var headerSize = r.readUShort();
         switch (type) {
-            case 1: {
+            case 1: { // sprite
                 var imgnum = r.readUShort();
                 var h = r.readUShort();
                 if (h == 1) {
@@ -109,7 +110,7 @@ define(["require", "exports", '../../libs/dataviewstream', '../pixelprovider'], 
                     return createImage(w, h, data.subarray(i * w * h, i * w * h + w * h), trans, pal);
                 break;
             }
-            case 2: {
+            case 2: { // font
                 var ws = new Array(128);
                 for (var i = 0; i < 128; i++)
                     ws[i] = r.readUByte();
@@ -124,7 +125,7 @@ define(["require", "exports", '../../libs/dataviewstream', '../pixelprovider'], 
                     return createImage(w, h, data.subarray(i * w * h, i * w * h + w * h), trans, pal);
                 break;
             }
-            case 5: {
+            case 5: { //texture
                 var mod = r.readUByte();
                 var len = r.readUInt();
                 var data = read(r, len, mod);
@@ -160,17 +161,17 @@ define(["require", "exports", '../../libs/dataviewstream', '../pixelprovider'], 
             }
         }
     }
-    var RavenPals = (function () {
-        function RavenPals(palbuf) {
+    class RavenPals {
+        constructor(palbuf) {
             this.pal = new data.DataViewStream(palbuf, true);
             this.count = this.pal.readUByte();
         }
-        RavenPals.prototype.get = function (i) {
+        get(i) {
             var p = new Uint8Array(256 * 3);
             this.readPal(i, p);
             return p;
-        };
-        RavenPals.prototype.readPal = function (i, p) {
+        }
+        readPal(i, p) {
             if (i >= this.count)
                 throw new Error('No pal ' + i);
             this.pal.setOffset(i * 768 + 1);
@@ -179,12 +180,11 @@ define(["require", "exports", '../../libs/dataviewstream', '../pixelprovider'], 
                 p[i * 3 + 1] = this.pal.readUByte() * 4;
                 p[i * 3 + 2] = this.pal.readUByte() * 4;
             }
-        };
-        return RavenPals;
-    })();
+        }
+    }
     exports.RavenPals = RavenPals;
-    var RavenRes = (function () {
-        function RavenRes(resbuf) {
+    class RavenRes {
+        constructor(resbuf) {
             var res = new data.DataViewStream(resbuf, true);
             var count = res.readUInt();
             var offsets = new Array(count);
@@ -195,16 +195,15 @@ define(["require", "exports", '../../libs/dataviewstream', '../pixelprovider'], 
             this.count = count;
             this.offsets = offsets;
         }
-        RavenRes.prototype.get = function (i, pal) {
+        get(i, pal) {
             if (i >= this.count)
                 throw new Error('No res ' + i);
             this.res.setOffset(this.offsets[i]);
             return readFile(this.res, pal);
-        };
-        RavenRes.prototype.size = function () {
+        }
+        size() {
             return this.count;
-        };
-        return RavenRes;
-    })();
+        }
+    }
     exports.RavenRes = RavenRes;
 });

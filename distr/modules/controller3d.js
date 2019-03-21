@@ -1,21 +1,23 @@
-define(["require", "exports", './camera', '../libs_js/glmatrix', '../libs/mathutils'], function (require, exports, camera, GLM, MU) {
+define(["require", "exports", "./camera", "../libs_js/glmatrix", "../libs/mathutils"], function (require, exports, camera, GLM, MU) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var named = {
+        8: 'BACKSPACE',
+        9: 'TAB',
+        13: 'ENTER',
+        16: 'SHIFT',
+        27: 'ESCAPE',
+        32: 'SPACE',
+        37: 'LEFT',
+        38: 'UP',
+        39: 'RIGHT',
+        40: 'DOWN'
+    };
     function mapKeyCode(code) {
-        var named = {
-            8: 'BACKSPACE',
-            9: 'TAB',
-            13: 'ENTER',
-            16: 'SHIFT',
-            27: 'ESCAPE',
-            32: 'SPACE',
-            37: 'LEFT',
-            38: 'UP',
-            39: 'RIGHT',
-            40: 'DOWN'
-        };
         return named[code] || (code >= 65 && code <= 90 ? String.fromCharCode(code) : null);
     }
-    var Controller3D = (function () {
-        function Controller3D(gl) {
+    class Controller3D {
+        constructor(gl) {
             this.camera = new camera.Camera(0, 0, 0, 0, 0);
             this.projection = GLM.mat4.create();
             this.drag = false;
@@ -27,14 +29,13 @@ define(["require", "exports", './camera', '../libs_js/glmatrix', '../libs/mathut
             this.moveVec = [0, 0];
             this.gl = gl;
             var self = this;
-            this.gl.canvas.addEventListener('mousemove', function (e) { return self.mousemove(e); });
-            this.gl.canvas.addEventListener('mouseup', function (e) { return self.mouseup(e); });
-            this.gl.canvas.addEventListener('mousedown', function (e) { return self.mousedown(e); });
-            this.gl.canvas.addEventListener('mousewheel', function (e) { return self.mousewheel(e); });
-            document.addEventListener('keyup', function (e) { return self.keyup(e); });
-            document.addEventListener('keydown', function (e) { return self.keydown(e); });
+            this.gl.canvas.addEventListener('mousemove', (e) => self.mousemove(e));
+            this.gl.canvas.addEventListener('mouseup', (e) => self.mouseup(e));
+            this.gl.canvas.addEventListener('mousedown', (e) => self.mousedown(e));
+            document.addEventListener('keyup', (e) => self.keyup(e));
+            document.addEventListener('keydown', (e) => self.keydown(e));
         }
-        Controller3D.prototype.mousemove = function (e) {
+        mousemove(e) {
             var x = e.clientX;
             var y = e.clientY;
             if (this.drag) {
@@ -43,21 +44,17 @@ define(["require", "exports", './camera', '../libs_js/glmatrix', '../libs/mathut
             this.oldX = x;
             this.oldY = y;
             return false;
-        };
-        Controller3D.prototype.mouseup = function (e) {
+        }
+        mouseup(e) {
             this.drag = false;
             this.click = true;
             return false;
-        };
-        Controller3D.prototype.mousedown = function (e) {
+        }
+        mousedown(e) {
             this.drag = true;
             return false;
-        };
-        Controller3D.prototype.mousewheel = function (e) {
-            this.fov += -e.wheelDelta / 60;
-            return false;
-        };
-        Controller3D.prototype.keydown = function (e) {
+        }
+        keydown(e) {
             if (!e.altKey && !e.ctrlKey && !e.metaKey) {
                 var key = mapKeyCode(e.keyCode);
                 if (key)
@@ -65,8 +62,8 @@ define(["require", "exports", './camera', '../libs_js/glmatrix', '../libs/mathut
                 this.keys[e.keyCode] = true;
             }
             return false;
-        };
-        Controller3D.prototype.keyup = function (e) {
+        }
+        keyup(e) {
             if (!e.altKey && !e.ctrlKey && !e.metaKey) {
                 var key = mapKeyCode(e.keyCode);
                 if (key)
@@ -74,32 +71,50 @@ define(["require", "exports", './camera', '../libs_js/glmatrix', '../libs/mathut
                 this.keys[e.keyCode] = false;
             }
             return false;
-        };
-        Controller3D.prototype.getX = function () {
+        }
+        getX() {
             return this.oldX;
-        };
-        Controller3D.prototype.getY = function () {
+        }
+        getY() {
             return this.oldY;
-        };
-        Controller3D.prototype.getMatrix = function () {
+        }
+        setFov(fov) {
+            this.fov = fov;
+        }
+        getFov() {
+            return this.fov;
+        }
+        getMatrix() {
             var projection = this.projection;
             GLM.mat4.perspective(projection, MU.deg2rad(this.fov), this.gl.drawingBufferWidth / this.gl.drawingBufferHeight, 1, 0xFFFF);
             GLM.mat4.mul(projection, projection, this.camera.getTransformMatrix());
             return projection;
-        };
-        Controller3D.prototype.getProjectionMatrix = function () {
+        }
+        getProjectionMatrix() {
             return GLM.mat4.perspective(this.projection, MU.deg2rad(this.fov), this.gl.drawingBufferWidth / this.gl.drawingBufferHeight, 1, 0xFFFF);
-        };
-        Controller3D.prototype.getModelViewMatrix = function () {
+        }
+        getModelViewMatrix() {
             return this.camera.getTransformMatrix();
-        };
-        Controller3D.prototype.getCamera = function () {
+        }
+        getCamera() {
             return this.camera;
-        };
-        Controller3D.prototype.isClick = function () {
+        }
+        isClick() {
             return this.click;
-        };
-        Controller3D.prototype.move = function (speed) {
+        }
+        getKeys() {
+            return this.keys;
+        }
+        getForwardMouse() {
+            var invertTrans = GLM.mat4.invert(GLM.mat4.create(), this.getCamera().getTransformMatrix());
+            var invTP = GLM.mat4.invert(GLM.mat4.create(), this.getProjectionMatrix());
+            var invTP = GLM.mat4.mul(invTP, invertTrans, invTP);
+            var dx = 2 * this.getX() / this.gl.drawingBufferWidth - 1;
+            var dy = 2 * this.getY() / this.gl.drawingBufferHeight - 1;
+            var forward = GLM.vec3.transformMat4(GLM.vec3.create(), [dx, -dy, -1], invTP);
+            return GLM.vec3.sub(forward, forward, this.getCamera().getPos());
+        }
+        move(speed) {
             speed *= 8000;
             // Forward movement
             var up = this.keys['W'] | this.keys['UP'];
@@ -116,24 +131,7 @@ define(["require", "exports", './camera', '../libs_js/glmatrix', '../libs/mathut
             GLM.vec3.add(campos, campos, sideways);
             this.click = false;
             this.camera.setPos(campos);
-        };
-        Controller3D.prototype.move1 = function (speed) {
-            speed *= 8000;
-            var moveVec = this.moveVec;
-            var forward = this.camera.forward();
-            moveVec[0] = forward[0];
-            moveVec[1] = forward[2];
-            var up = this.keys['W'] | this.keys['UP'];
-            var down = this.keys['S'] | this.keys['DOWN'];
-            GLM.vec2.normalize(moveVec, moveVec);
-            GLM.vec2.scale(moveVec, moveVec, speed * (up - down));
-            var left = this.keys['A'] | this.keys['LEFT'];
-            var right = this.keys['D'] | this.keys['RIGHT'];
-            this.camera.updateAngles(-(left * speed / 70) + (right * speed / 70), 0);
-            this.click = false;
-            return moveVec;
-        };
-        return Controller3D;
-    })();
+        }
+    }
     exports.Controller3D = Controller3D;
 });

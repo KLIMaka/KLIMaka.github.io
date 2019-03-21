@@ -1,45 +1,51 @@
-define(["require", "exports"], function(require, exports) {
-    var BitReader = (function () {
-        function BitReader(data) {
+define(["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    function toSigned(value, bits) {
+        return value & (1 << (bits - 1))
+            ? -(~value & ((1 << bits) - 1)) - 1
+            : value;
+    }
+    class BitReader {
+        constructor(data) {
             this.data = data;
             this.currentBit = 7;
             this.currentByte = 0;
             this.data = data;
         }
-        BitReader.prototype.readBit = function (reverse) {
-            if (typeof reverse === "undefined") { reverse = false; }
+        readBit(reverse = false) {
             if (this.currentBit > 6) {
                 this.currentByte = this.read();
                 this.currentBit = 0;
-            } else {
+            }
+            else {
                 this.currentBit++;
             }
-
             if (reverse) {
                 return ((this.currentByte >> (this.currentBit)) & 1);
-            } else {
+            }
+            else {
                 return ((this.currentByte >> (7 - this.currentBit)) & 1);
             }
-        };
-
-        BitReader.prototype.read = function () {
+        }
+        read() {
             return this.data.readUByte();
-        };
-
-        BitReader.prototype.readBits = function (bits, reverse) {
-            if (typeof reverse === "undefined") { reverse = false; }
+        }
+        readBits(bits, reverse = false) {
             var value = 0;
+            var signed = bits < 0;
+            bits = signed ? -bits : bits;
             for (var i = 0; i < bits; i++) {
                 var b = this.readBit(reverse);
                 if (reverse) {
                     value = value | (b << i);
-                } else {
+                }
+                else {
                     value = (value << 1) | b;
                 }
             }
-            return value;
-        };
-        return BitReader;
-    })();
+            return signed ? toSigned(value, bits) : value;
+        }
+    }
     exports.BitReader = BitReader;
 });

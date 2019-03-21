@@ -1,133 +1,106 @@
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
-define(["require", "exports", '../libs/mathutils', './anim'], function (require, exports, MU, Anim) {
-    var AbstractPixelProvider = (function () {
-        function AbstractPixelProvider(w, h) {
+define(["require", "exports", "../libs/mathutils", "./anim"], function (require, exports, MU, Anim) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.BlendNormal = (dst, dstoff, src, srcoff) => {
+        dst[dstoff] = src[srcoff];
+        dst[dstoff + 1] = src[srcoff + 1];
+        dst[dstoff + 2] = src[srcoff + 2];
+        dst[dstoff + 3] = src[srcoff + 3];
+    };
+    exports.BlendAlpha = (dst, dstoff, src, srcoff) => {
+        var a = src[srcoff + 3] / 255;
+        var _a = 1 - a;
+        dst[dstoff] = src[srcoff] * a + dst[dstoff] * _a;
+        dst[dstoff + 1] = src[srcoff + 1] * a + dst[dstoff + 1] * _a;
+        dst[dstoff + 2] = src[srcoff + 2] * a + dst[dstoff + 2] * _a;
+        dst[dstoff + 3] = 255;
+    };
+    class AbstractPixelProvider {
+        constructor(w, h) {
             this.w = w;
             this.h = h;
             if (w < 0 || h < 0)
                 throw new Error('Invalid size');
         }
-        AbstractPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) { };
-        AbstractPixelProvider.prototype.getPixel = function (x, y) {
+        putToDst(x, y, dst, dstoff, blend) { }
+        getPixel(x, y) {
             var dst = new Uint8Array(4);
-            this.putToDst(x, y, dst, 0);
+            this.putToDst(x, y, dst, 0, exports.BlendNormal);
             return dst;
-        };
-        AbstractPixelProvider.prototype.getWidth = function () {
+        }
+        getWidth() {
             return this.w;
-        };
-        AbstractPixelProvider.prototype.getHeight = function () {
+        }
+        getHeight() {
             return this.h;
-        };
-        AbstractPixelProvider.prototype.render = function (dst) {
+        }
+        render(dst, blend = exports.BlendNormal) {
             var off = 0;
+            var tmp = new Uint8Array(4);
             for (var y = 0; y < this.h; y++) {
                 for (var x = 0; x < this.w; x++) {
-                    this.putToDst(x, y, dst, off);
+                    this.putToDst(x, y, dst, off, blend);
                     off += 4;
                 }
             }
-        };
-        AbstractPixelProvider.prototype.blend = function (dst) {
-            var tmpdst = new Uint8Array(4);
-            var off = 0;
-            for (var y = 0; y < this.h; y++) {
-                for (var x = 0; x < this.w; x++) {
-                    this.putToDst(x, y, tmpdst, 0);
-                    if (tmpdst[3] == 0) {
-                        off += 4;
-                        continue;
-                    }
-                    var a = tmpdst[3] / 255;
-                    dst[off + 0] = MU.int(tmpdst[0] * a + dst[off + 0] * (1 - a));
-                    dst[off + 1] = MU.int(tmpdst[1] * a + dst[off + 1] * (1 - a));
-                    dst[off + 2] = MU.int(tmpdst[2] * a + dst[off + 2] * (1 - a));
-                    dst[off + 3] = 255;
-                    off += 4;
-                }
-            }
-        };
-        return AbstractPixelProvider;
-    })();
+        }
+    }
     exports.AbstractPixelProvider = AbstractPixelProvider;
-    var ConstPixelProvider = (function (_super) {
-        __extends(ConstPixelProvider, _super);
-        function ConstPixelProvider(color, w, h) {
-            _super.call(this, w, h);
+    class ConstPixelProvider extends AbstractPixelProvider {
+        constructor(color, w, h) {
+            super(w, h);
             this.color = color;
         }
-        ConstPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) {
-            dst[dstoff] = this.color[0];
-            dst[dstoff + 1] = this.color[1];
-            dst[dstoff + 2] = this.color[2];
-            dst[dstoff + 3] = this.color[3];
-        };
-        return ConstPixelProvider;
-    })(AbstractPixelProvider);
+        putToDst(x, y, dst, dstoff, blend) {
+            blend(dst, dstoff, this.color, 0);
+        }
+    }
     exports.ConstPixelProvider = ConstPixelProvider;
-    var RGBAArrayPixelProvider = (function (_super) {
-        __extends(RGBAArrayPixelProvider, _super);
-        function RGBAArrayPixelProvider(arr, w, h) {
-            _super.call(this, w, h);
+    class RGBAArrayPixelProvider extends AbstractPixelProvider {
+        constructor(arr, w, h) {
+            super(w, h);
             this.arr = arr;
             if (arr.length != w * h * 4)
                 throw new Error('Invalid array size. Need ' + (w * h * 4) + ' but provided ' + arr.length);
         }
-        RGBAArrayPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) {
+        putToDst(x, y, dst, dstoff, blend) {
             var w = this.getWidth();
-            dst[dstoff] = this.arr[(x + y * w) * 4];
-            dst[dstoff + 1] = this.arr[(x + y * w) * 4 + 1];
-            dst[dstoff + 2] = this.arr[(x + y * w) * 4 + 2];
-            dst[dstoff + 3] = this.arr[(x + y * w) * 4 + 3];
-        };
-        return RGBAArrayPixelProvider;
-    })(AbstractPixelProvider);
+            blend(dst, dstoff, this.arr, (x + y * w) * 4);
+        }
+    }
     exports.RGBAArrayPixelProvider = RGBAArrayPixelProvider;
-    var RGBPalPixelProvider = (function (_super) {
-        __extends(RGBPalPixelProvider, _super);
-        function RGBPalPixelProvider(arr, pal, w, h, alpha, transIdx, shadow, shadowColor) {
-            if (alpha === void 0) { alpha = 255; }
-            if (transIdx === void 0) { transIdx = -1; }
-            if (shadow === void 0) { shadow = -1; }
-            if (shadowColor === void 0) { shadowColor = [0, 0, 0, 0]; }
-            _super.call(this, w, h);
+    class RGBPalPixelProvider extends AbstractPixelProvider {
+        constructor(arr, pal, w, h, alpha = 255, transIdx = -1, shadow = -1, shadowColor = new Uint8Array([0, 0, 0, 0])) {
+            super(w, h);
             this.arr = arr;
             this.pal = pal;
             this.alpha = alpha;
             this.transIdx = transIdx;
             this.shadow = shadow;
             this.shadowColor = shadowColor;
+            this.palTmp = new Uint8Array(4);
             if (arr.length != w * h)
                 throw new Error('Invalid array size. Need ' + (w * h * 4) + ' but provided ' + arr.length);
         }
-        RGBPalPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) {
+        putToDst(x, y, dst, dstoff, blend) {
             var w = this.getWidth();
             var idx = this.arr[x + y * w];
             if (idx == this.shadow) {
-                dst[dstoff + 0] = this.shadowColor[0];
-                dst[dstoff + 1] = this.shadowColor[1];
-                dst[dstoff + 2] = this.shadowColor[2];
-                dst[dstoff + 3] = this.shadowColor[3];
+                blend(dst, dstoff, this.shadowColor, 0);
                 return;
             }
             var paloff = idx * 3;
-            dst[dstoff] = this.pal[paloff];
-            dst[dstoff + 1] = this.pal[paloff + 1];
-            dst[dstoff + 2] = this.pal[paloff + 2];
-            dst[dstoff + 3] = idx == this.transIdx ? 0 : this.alpha;
-        };
-        return RGBPalPixelProvider;
-    })(AbstractPixelProvider);
+            this.palTmp[0] = this.pal[paloff];
+            this.palTmp[1] = this.pal[paloff + 1];
+            this.palTmp[2] = this.pal[paloff + 2];
+            this.palTmp[3] = idx == this.transIdx ? 0 : this.alpha;
+            blend(dst, dstoff, this.palTmp, 0);
+        }
+    }
     exports.RGBPalPixelProvider = RGBPalPixelProvider;
-    var RectPixelProvider = (function (_super) {
-        __extends(RectPixelProvider, _super);
-        function RectPixelProvider(provider, sx, sy, ex, ey, paddColor) {
-            if (paddColor === void 0) { paddColor = [0, 0, 0, 0]; }
-            _super.call(this, ex - sx, ey - sy);
+    class RectPixelProvider extends AbstractPixelProvider {
+        constructor(provider, sx, sy, ex, ey, paddColor = new Uint8Array([0, 0, 0, 0])) {
+            super(ex - sx, ey - sy);
             this.provider = provider;
             this.sx = sx;
             this.sy = sy;
@@ -139,68 +112,69 @@ define(["require", "exports", '../libs/mathutils', './anim'], function (require,
             if (sx >= ex || sy >= ey)
                 throw new Error('Invalid subrect');
         }
-        RectPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) {
+        putToDst(x, y, dst, dstoff, blend) {
             var nx = this.sx + x;
             var ny = this.sy + y;
             if (nx < 0 || ny < 0 || nx >= this.origw || ny >= this.origh)
-                this.putPadding(dst, dstoff);
+                blend(dst, dstoff, this.paddColor, 0);
             else
-                this.provider.putToDst(nx, ny, dst, dstoff);
-        };
-        RectPixelProvider.prototype.putPadding = function (dst, dstoff) {
-            dst[dstoff] = this.paddColor[0];
-            dst[dstoff + 1] = this.paddColor[1];
-            dst[dstoff + 2] = this.paddColor[2];
-            dst[dstoff + 3] = this.paddColor[3];
-        };
-        return RectPixelProvider;
-    })(AbstractPixelProvider);
+                this.provider.putToDst(nx, ny, dst, dstoff, blend);
+        }
+    }
     exports.RectPixelProvider = RectPixelProvider;
-    var ResizePixelProvider = (function (_super) {
-        __extends(ResizePixelProvider, _super);
-        function ResizePixelProvider(provider, w, h) {
-            _super.call(this, w, h);
+    class ResizePixelProvider extends AbstractPixelProvider {
+        constructor(provider, w, h) {
+            super(w, h);
             this.provider = provider;
             this.dx = provider.getWidth() / w;
             this.dy = provider.getHeight() / h;
         }
-        ResizePixelProvider.prototype.putToDst = function (x, y, dst, dstoff) {
-            this.provider.putToDst(MU.int(x * this.dx), MU.int(y * this.dy), dst, dstoff);
-        };
-        return ResizePixelProvider;
-    })(AbstractPixelProvider);
+        putToDst(x, y, dst, dstoff, blend) {
+            this.provider.putToDst(MU.int(x * this.dx), MU.int(y * this.dy), dst, dstoff, blend);
+        }
+    }
     exports.ResizePixelProvider = ResizePixelProvider;
-    var AxisSwapPixelProvider = (function (_super) {
-        __extends(AxisSwapPixelProvider, _super);
-        function AxisSwapPixelProvider(provider) {
-            _super.call(this, provider.getHeight(), provider.getWidth());
+    class AxisSwapPixelProvider extends AbstractPixelProvider {
+        constructor(provider) {
+            super(provider.getHeight(), provider.getWidth());
             this.provider = provider;
         }
-        AxisSwapPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) {
-            this.provider.putToDst(y, x, dst, dstoff);
-        };
-        return AxisSwapPixelProvider;
-    })(AbstractPixelProvider);
+        putToDst(x, y, dst, dstoff, blend) {
+            this.provider.putToDst(y, x, dst, dstoff, blend);
+        }
+    }
     exports.AxisSwapPixelProvider = AxisSwapPixelProvider;
-    var FlipPixelProvider = (function (_super) {
-        __extends(FlipPixelProvider, _super);
-        function FlipPixelProvider(provider, xswap, yswap) {
-            _super.call(this, provider.getWidth(), provider.getHeight());
+    class FlipPixelProvider extends AbstractPixelProvider {
+        constructor(provider, xswap, yswap) {
+            super(provider.getWidth(), provider.getHeight());
             this.provider = provider;
             this.xs = xswap ? provider.getWidth() - 1 : 0;
             this.ys = yswap ? provider.getHeight() - 1 : 0;
         }
-        FlipPixelProvider.prototype.putToDst = function (x, y, dst, dstoff) {
-            this.provider.putToDst(Math.abs(x - this.xs), Math.abs(y - this.ys), dst, dstoff);
-        };
-        return FlipPixelProvider;
-    })(AbstractPixelProvider);
+        putToDst(x, y, dst, dstoff, blend) {
+            this.provider.putToDst(Math.abs(x - this.xs), Math.abs(y - this.ys), dst, dstoff, blend);
+        }
+    }
     exports.FlipPixelProvider = FlipPixelProvider;
-    function fromPal(arr, pal, w, h, alpha, transIdx, shadow, shadowColor) {
-        if (alpha === void 0) { alpha = 255; }
-        if (transIdx === void 0) { transIdx = -1; }
-        if (shadow === void 0) { shadow = -1; }
-        if (shadowColor === void 0) { shadowColor = [0, 0, 0, 0]; }
+    class OffsetPixelProvider extends AbstractPixelProvider {
+        constructor(provider, w, h, xo, yo, paddColor = new Uint8Array([0, 0, 0, 0])) {
+            super(w, h);
+            this.provider = provider;
+            this.xo = xo;
+            this.yo = yo;
+            this.paddColor = paddColor;
+        }
+        putToDst(x, y, dst, dstoff, blend) {
+            var rx = x - this.xo;
+            var ry = y - this.yo;
+            if (rx < 0 || ry < 0 || rx >= this.provider.getWidth() || ry >= this.provider.getHeight())
+                blend(dst, dstoff, this.paddColor, 0);
+            else
+                this.provider.putToDst(rx, ry, dst, dstoff, blend);
+        }
+    }
+    exports.OffsetPixelProvider = OffsetPixelProvider;
+    function fromPal(arr, pal, w, h, alpha = 255, transIdx = -1, shadow = -1, shadowColor = new Uint8Array([0, 0, 0, 0])) {
         return new RGBPalPixelProvider(arr, pal, w, h, alpha, transIdx, shadow, shadowColor);
     }
     exports.fromPal = fromPal;
@@ -220,15 +194,13 @@ define(["require", "exports", '../libs/mathutils', './anim'], function (require,
         return new FlipPixelProvider(provider, true, true);
     }
     exports.xyflip = xyflip;
-    function rect(provider, sx, sy, ex, ey, paddColod) {
-        if (paddColod === void 0) { paddColod = [0, 0, 0, 0]; }
+    function rect(provider, sx, sy, ex, ey, paddColod = new Uint8Array([0, 0, 0, 0])) {
         if (sx == 0 && sy == 0 && provider.getHeight() == ey && provider.getWidth() == ex)
             return provider;
         return new RectPixelProvider(provider, sx, sy, ex, ey, paddColod);
     }
     exports.rect = rect;
-    function center(provider, w, h, paddColod) {
-        if (paddColod === void 0) { paddColod = [0, 0, 0, 0]; }
+    function center(provider, w, h, paddColod = new Uint8Array([0, 0, 0, 0])) {
         var dw = MU.int((provider.getWidth() - w) / 2);
         var dh = MU.int((provider.getHeight() - h) / 2);
         return rect(provider, dw, dh, w + dw, h + dh);
@@ -240,8 +212,7 @@ define(["require", "exports", '../libs/mathutils', './anim'], function (require,
         return new ResizePixelProvider(provider, w, h);
     }
     exports.resize = resize;
-    function fit(w, h, provider, paddColor) {
-        if (paddColor === void 0) { paddColor = [0, 0, 0, 0]; }
+    function fit(w, h, provider, paddColor = new Uint8Array([0, 0, 0, 0])) {
         if (provider.getHeight() == h && provider.getWidth() == w)
             return provider;
         if (provider.getWidth() <= w && provider.getHeight() <= h) {
@@ -275,18 +246,20 @@ define(["require", "exports", '../libs/mathutils', './anim'], function (require,
         }
     }
     exports.fit = fit;
-    var AnimatedPixelProvider = (function (_super) {
-        __extends(AnimatedPixelProvider, _super);
-        function AnimatedPixelProvider(frames, fps) {
-            _super.call(this, frames, fps);
+    function offset(provider, w, h, xo, yo, paddColor = new Uint8Array([0, 0, 0, 0])) {
+        return new OffsetPixelProvider(provider, w, h, xo, yo, paddColor);
+    }
+    exports.offset = offset;
+    class AnimatedPixelProvider extends Anim.DefaultAnimated {
+        constructor(frames, fps) {
+            super(frames, fps);
         }
-        AnimatedPixelProvider.prototype.getWidth = function () {
+        getWidth() {
             return this.animate(0).getWidth();
-        };
-        AnimatedPixelProvider.prototype.getHeight = function () {
+        }
+        getHeight() {
             return this.animate(0).getHeight();
-        };
-        return AnimatedPixelProvider;
-    })(Anim.DefaultAnimated);
+        }
+    }
     exports.AnimatedPixelProvider = AnimatedPixelProvider;
 });

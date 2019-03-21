@@ -1,66 +1,61 @@
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
 define(["require", "exports"], function (require, exports) {
-    var Element = (function () {
-        function Element(element) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class Element {
+        constructor(element) {
             this.element = element;
         }
-        Element.prototype.className = function (name) {
+        className(name) {
             this.element.className = name;
             return this;
-        };
-        Element.prototype.text = function (text) {
+        }
+        text(text) {
             this.element.textContent = text;
             return this;
-        };
-        Element.prototype.append = function (element) {
+        }
+        append(element) {
             this.element.appendChild(element.element);
             return this;
-        };
-        Element.prototype.pos = function (x, y) {
+        }
+        pos(x, y) {
             this.element.style.left = x;
             this.element.style.top = y;
             return this;
-        };
-        Element.prototype.size = function (w, h) {
+        }
+        size(w, h) {
             this.element.style.width = w;
             this.element.style.height = h;
             return this;
-        };
-        Element.prototype.width = function (w) {
+        }
+        width(w) {
             this.element.style.width = w;
             return this;
-        };
-        Element.prototype.height = function (h) {
+        }
+        height(h) {
             this.element.style.height = h;
             return this;
-        };
-        Element.prototype.elem = function () {
+        }
+        elem() {
             return this.element;
-        };
-        Element.prototype.attr = function (name, val) {
+        }
+        attr(name, val) {
             this.element.setAttribute(name, val);
             return this;
-        };
-        Element.prototype.css = function (name, val) {
+        }
+        css(name, val) {
             this.element.style[name] = val;
             return this;
-        };
-        return Element;
-    })();
+        }
+    }
     exports.Element = Element;
     function create(tag) {
         return document.createElement(tag);
     }
-    var Table = (function (_super) {
-        __extends(Table, _super);
-        function Table() {
-            _super.call(this, create('table'));
+    class Table extends Element {
+        constructor() {
+            super(create('table'));
         }
-        Table.prototype.row = function (cols) {
+        row(cols) {
             var tr = new Element(create('tr'));
             for (var i = 0; i < cols.length; i++) {
                 var c = cols[i];
@@ -69,18 +64,16 @@ define(["require", "exports"], function (require, exports) {
             }
             this.append(tr);
             return this;
-        };
-        Table.prototype.removeRow = function (row) {
+        }
+        removeRow(row) {
             this.elem().deleteRow(row);
             return this;
-        };
-        return Table;
-    })(Element);
+        }
+    }
     exports.Table = Table;
-    var Properties = (function (_super) {
-        __extends(Properties, _super);
-        function Properties(keys) {
-            _super.call(this);
+    class Properties extends Table {
+        constructor(keys) {
+            super();
             this.className('props');
             this.labels = {};
             for (var i = 0; i < keys.length; i++) {
@@ -90,20 +83,19 @@ define(["require", "exports"], function (require, exports) {
                 this.prop(k, l);
             }
         }
-        Properties.prototype.prop = function (name, el) {
+        prop(name, el) {
             this.row([div('property_name').text(name), el]);
             return this;
-        };
-        Properties.prototype.refresh = function (props) {
+        }
+        refresh(props) {
             var fields = Object.keys(this.labels);
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
                 this.labels[field].text(props[field] + '');
             }
             return this;
-        };
-        return Properties;
-    })(Table);
+        }
+    }
     exports.Properties = Properties;
     function tag(tag) {
         return new Element(create(tag));
@@ -136,44 +128,38 @@ define(["require", "exports"], function (require, exports) {
             .append(div('content'));
     }
     exports.panel = panel;
-    var Progress = (function (_super) {
-        __extends(Progress, _super);
-        function Progress(title, max) {
-            if (max === void 0) { max = 100; }
-            _super.call(this, create('div'));
+    class Progress extends Element {
+        constructor(title, max = 100) {
+            super(create('div'));
             this.title = div('title').text(title);
             this.progress = new Element(create('progress')).attr('max', max);
             this.append(this.title).append(this.progress);
         }
-        Progress.prototype.max = function (max) {
+        max(max) {
             this.progress.attr('max', max);
             return this;
-        };
-        Progress.prototype.setValue = function (val) {
+        }
+        setValue(val) {
             this.progress.attr('value', val);
             return this;
-        };
-        return Progress;
-    })(Element);
+        }
+    }
     exports.Progress = Progress;
-    function progress(title, max) {
-        if (max === void 0) { max = 100; }
+    function progress(title, max = 100) {
         return new Progress(title, max);
     }
     exports.progress = progress;
-    var VerticalPanel = (function (_super) {
-        __extends(VerticalPanel, _super);
-        function VerticalPanel(className) {
-            _super.call(this, create('div'));
+    class VerticalPanel extends Element {
+        constructor(className) {
+            super(create('div'));
             this.rows = 0;
             this.className(className);
         }
-        VerticalPanel.prototype.add = function (elem) {
+        add(elem) {
             this.append(elem);
             return this.rows++;
-        };
-        return VerticalPanel;
-    })(Element);
+        }
+    }
     exports.VerticalPanel = VerticalPanel;
     function verticalPanel(className) {
         return new VerticalPanel(className);

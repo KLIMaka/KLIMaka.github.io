@@ -19,11 +19,13 @@
 //  filler - useless byte to make structure aligned
 //  lotag, hitag, extra - These variables used by the game programmer only
 define(["require", "exports"], function (require, exports) {
-    var Sector = (function () {
-        function Sector() {
-        }
-        return Sector;
-    })();
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    class SectorStats {
+    }
+    exports.SectorStats = SectorStats;
+    class Sector {
+    }
     exports.Sector = Sector;
     //  x, y: Coordinate of left side of wall, get right side from next wall's left side
     //  point2: Index to next wall on the right (always in the same sector)
@@ -48,11 +50,11 @@ define(["require", "exports"], function (require, exports) {
     //  repeat's - used to change the size of pixels (stretch textures)
     //  pannings - used to align textures or to do texture panning
     //  lotag, hitag, extra - These variables used by the game programmer only
-    var Wall = (function () {
-        function Wall() {
-        }
-        return Wall;
-    })();
+    class WallStats {
+    }
+    exports.WallStats = WallStats;
+    class Wall {
+    }
     exports.Wall = Wall;
     //  x, y, z - position of sprite - can be defined at center bottom or center
     //  cstat:
@@ -82,16 +84,19 @@ define(["require", "exports"], function (require, exports) {
     //  ang - angle the sprite is facing
     //  owner, xvel, yvel, zvel, lotag, hitag, extra - These variables used by the
     //  game programmer only
-    var Sprite = (function () {
-        function Sprite() {
-        }
-        return Sprite;
-    })();
+    exports.FACE = 0;
+    exports.WALL = 1;
+    exports.FLOOR = 2;
+    class SpriteStats {
+    }
+    exports.SpriteStats = SpriteStats;
+    class Sprite {
+    }
     exports.Sprite = Sprite;
-    var Board = (function () {
-        function Board() {
-        }
-        return Board;
-    })();
+    class Board {
+    }
     exports.Board = Board;
+    class Header1 {
+    }
+    exports.Header1 = Header1;
 });

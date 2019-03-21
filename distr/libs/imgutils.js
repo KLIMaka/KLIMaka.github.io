@@ -1,4 +1,6 @@
-define(["require", "exports"], function (require, exports) {
+define(["require", "exports", "../modules/pixelprovider"], function (require, exports, pixel) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     function createEmptyCanvas(width, height) {
         var canvas = document.createElement('canvas');
         canvas.width = width;
@@ -6,64 +8,57 @@ define(["require", "exports"], function (require, exports) {
         return canvas;
     }
     exports.createEmptyCanvas = createEmptyCanvas;
-    function createCanvas(provider) {
+    function createCanvas(provider, blend = pixel.BlendNormal) {
         var canvas = document.createElement('canvas');
         canvas.width = provider.getWidth();
         canvas.height = provider.getHeight();
-        drawToCanvas(provider, canvas);
+        drawToCanvas(provider, canvas, 0, 0, blend);
         return canvas;
     }
     exports.createCanvas = createCanvas;
-    function drawToCanvas(provider, canvas, x, y) {
-        if (x === void 0) { x = 0; }
-        if (y === void 0) { y = 0; }
+    function drawToCanvas(provider, canvas, x = 0, y = 0, blend = pixel.BlendNormal) {
         var ctx = canvas.getContext('2d');
-        var data = new Uint8ClampedArray(provider.getWidth() * provider.getHeight() * 4);
-        var id = new ImageData(data, provider.getWidth(), provider.getHeight());
-        provider.render(data);
+        var data;
+        if (blend === pixel.BlendNormal) {
+            data = new Uint8ClampedArray(provider.getWidth() * provider.getHeight() * 4);
+            var id = new ImageData(data, provider.getWidth(), provider.getHeight());
+        }
+        provider.render(data, blend);
         ctx.putImageData(id, x, y);
     }
     exports.drawToCanvas = drawToCanvas;
-    function blendToCanvas(provider, canvas, x, y) {
-        if (x === void 0) { x = 0; }
-        if (y === void 0) { y = 0; }
-        var ctx = canvas.getContext('2d');
-        var data = new Uint8ClampedArray(provider.getWidth() * provider.getHeight() * 4);
-        var id = new ImageData(data, provider.getWidth(), provider.getHeight());
-        provider.blend(data);
-        ctx.putImageData(id, x, y);
-    }
-    exports.blendToCanvas = blendToCanvas;
     function clearCanvas(canvas, style) {
         var ctx = canvas.getContext('2d');
         ctx.fillStyle = style;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     exports.clearCanvas = clearCanvas;
-    function copyRGBA(src, srcoff, dst, dstoff) {
-        dst[dstoff] = src[srcoff];
-        dst[dstoff + 1] = src[srcoff + 1];
-        dst[dstoff + 2] = src[srcoff + 2];
-        dst[dstoff + 3] = src[srcoff + 3];
+    function loadImageFromBuffer(buff, cb) {
+        var blob = new Blob([buff]);
+        var urlCreator = window.URL;
+        var imageUrl = urlCreator.createObjectURL(blob);
+        var img = new Image();
+        img.src = imageUrl;
+        img.onload = (evt) => {
+            var img = evt.target;
+            var canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            var data = new Uint8Array(ctx.getImageData(0, 0, img.width, img.height).data);
+            cb(new pixel.RGBAArrayPixelProvider(data, img.width, img.height));
+        };
     }
-    exports.copyRGBA = copyRGBA;
-    function blendRGBA(src, srcoff, dst, dstoff) {
-        if (src[srcoff + 3] == 0)
-            return;
-        var t = src[srcoff + 3] / 255;
-        var t_ = 1 - t;
-        dst[dstoff + 0] = dst[dstoff + 0] * t_ + src[srcoff + 0] * t;
-        dst[dstoff + 1] = dst[dstoff + 1] * t_ + src[srcoff + 1] * t;
-        dst[dstoff + 2] = dst[dstoff + 2] * t_ + src[srcoff + 2] * t;
-        dst[dstoff + 3] = Math.max(dst[dstoff + 3], src[srcoff + 3]);
-    }
-    exports.blendRGBA = blendRGBA;
+    exports.loadImageFromBuffer = loadImageFromBuffer;
     function loadImage(name, cb) {
         var image = new Image();
         image.src = name;
-        image.onload = function (evt) {
+        image.onload = (evt) => {
             var img = evt.target;
             var canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
             var ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
             cb(new Uint8Array(ctx.getImageData(0, 0, img.width, img.height).data));
