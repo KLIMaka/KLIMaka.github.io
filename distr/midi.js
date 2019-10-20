@@ -165,12 +165,11 @@ function onMIDISuccess(midiAccess) {
     document.writeln("MIDI ready!");
     midi = midiAccess;
     document.writeln(midi);
-    out = midi.outputs.get('output-1');
-    document.writeln('Connected MIDI: ' + out.name);
     var outs = midiAccess.outputs;
     var inputs = midiAccess.inputs;
     var _loop_1 = function (inp) {
         var i = inputs.get(inp);
+        document.writeln('Connected MIDI Input: ' + i.name);
         i.onmidimessage = function (e) {
             var e_2, _a;
             document.writeln(e.data + '');
