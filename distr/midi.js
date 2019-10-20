@@ -162,18 +162,18 @@ var pattern = null;
 var clock = new Clock();
 function onMIDISuccess(midiAccess) {
     var e_1, _a;
-    console.log("MIDI ready!");
+    document.writeln("MIDI ready!");
     midi = midiAccess;
-    console.log(midi);
+    document.writeln(midi);
     out = midi.outputs.get('output-1');
-    console.log('Connected MIDI: ' + out.name);
+    document.writeln('Connected MIDI: ' + out.name);
     var outs = midiAccess.outputs;
     var inputs = midiAccess.inputs;
     var _loop_1 = function (inp) {
         var i = inputs.get(inp);
         i.onmidimessage = function (e) {
             var e_2, _a;
-            console.log(e.data);
+            document.writeln(e.data + '');
             try {
                 for (var _b = (e_2 = void 0, __values(outs.keys())), _c = _b.next(); !_c.done; _c = _b.next()) {
                     var out_1 = _c.value;
@@ -207,7 +207,7 @@ function onMIDISuccess(midiAccess) {
     }
 }
 function onMIDIFailure(msg) {
-    console.log("Failed to get MIDI access - " + msg);
+    document.writeln("Failed to get MIDI access - " + msg);
 }
 navigator['requestMIDIAccess']().then(onMIDISuccess, onMIDIFailure);
 //# sourceMappingURL=midi.js.map
