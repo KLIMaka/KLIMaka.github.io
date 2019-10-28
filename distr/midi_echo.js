@@ -1,4 +1,4 @@
-import { table, label, div } from "./modules/ui/ui";
+import { table, label, div } from "./modules/ui/ui.js";
 function onMIDISuccess(midiAccess) {
     createChannelsTable(midiAccess);
     let outs = midiAccess.outputs;
