@@ -1,0 +1,9 @@
+-1 "resources/point1.png" plain;
+-2 "resources/img/font.png" plain;
+/////
+0 "brick.png" palletize;
+1 "64.png" palletize;
+2 "64g.png" palletize;
+3 "64x128.png" palletize;
+4 "64x128g.png" palletize;
+5 "sky.png" palletize;
