@@ -31369,7 +31369,7 @@ class Controller3D {
   }
 
   getProjectionMatrix(aspect) {
-    return _libs_js_glmatrix__WEBPACK_IMPORTED_MODULE_2__["mat4"].perspective(this.projection, _utils_mathutils__WEBPACK_IMPORTED_MODULE_0__["deg2rad"](this.fov), aspect, 1, 0x4FFF);
+    return _libs_js_glmatrix__WEBPACK_IMPORTED_MODULE_2__["mat4"].perspective(this.projection, _utils_mathutils__WEBPACK_IMPORTED_MODULE_0__["deg2rad"](this.fov), aspect, 1, 0xFFFF);
   }
 
   getTransformMatrix() {
