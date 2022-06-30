@@ -758,16 +758,32 @@ function parseCsv(e) {
       const parsedCsv = papaparse__WEBPACK_IMPORTED_MODULE_0___default().parse(csv, {
         header: true
       });
-      document.getElementById('table').appendChild(renderGrid(parsedCsv));
+      document.getElementById('table').appendChild(renderGrid(process(parsedCsv)));
     };
   }
+}
+
+function process(rows) {
+  const result = [];
+
+  for (const r of rows.data) {
+    const url = r['Referring page URL'];
+    if (!url) continue;
+    if (url.includes('viewtopic.php')) continue;
+    const parsedUrl = new URL(url);
+    const domain = getDomain(parsedUrl.hostname.toLowerCase());
+    if (domainFilter.has(domain)) continue;
+    result.push(r);
+  }
+
+  return result.sort((x, y) => y['Domain rating'] - x['Domain rating']);
 }
 
 function renderGrid(rows) {
   const table = document.createElement('table');
   let i = 1;
 
-  for (const r of rows.data) {
+  for (const r of rows) {
     const tr = document.createElement('tr');
     const url = r['Referring page URL'];
     if (!url) continue;
@@ -815,4 +831,4 @@ addDragAndDrop(document.getElementById('block-loader'), parseBlock);
 
 /******/ })()
 ;
-//# sourceMappingURL=app.bundle.js.map
+//# sourceMappingURL=app.bundle1.js.map
