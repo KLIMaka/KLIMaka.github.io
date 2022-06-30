@@ -793,6 +793,8 @@ function text(text) {
 
 function link(link) {
   const td = document.createElement('td');
+  td.style.maxWidth = '500px';
+  td.style.overflow = 'hidden';
   const a = document.createElement('a');
   a.href = link;
   a.innerText = link;
