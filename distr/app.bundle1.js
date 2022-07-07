@@ -774,9 +774,10 @@ function process(rows) {
     const domain = getDomain(parsedUrl.hostname.toLowerCase());
     if (domainFilter.has(domain)) continue;
     result.push(r);
-  }
+  } // return result.sort((x, y) => y['Domain rating'] - x['Domain rating']);
 
-  return result.sort((x, y) => y['Domain rating'] - x['Domain rating']);
+
+  return result;
 }
 
 function renderGrid(rows) {
